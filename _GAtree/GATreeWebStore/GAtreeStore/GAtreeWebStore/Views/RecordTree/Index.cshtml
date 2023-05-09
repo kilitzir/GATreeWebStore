@@ -1,0 +1,103 @@
+﻿@model IEnumerable<GAtreeWebStore.Models.RecordTree>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index of Record of trees for testdatarun : @ViewBag.tesdatarun</h1>
+<p></p>
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                id
+            </th>
+            <th>
+                Data
+            </th>
+            <th>
+                TreeStatus
+            </th>
+            <th>
+                runStage
+            </th>
+            <th>
+                cycleStage
+            </th>
+            <th>
+                Consolidated
+            </th>
+            <th>
+                iteration No
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td valign="middle">
+                    <b>@Html.DisplayFor(modelItem => item.RecordOfTrees_id)</b>
+                </td>
+                <td>
+                    <button type="button" class="toggle-btn align-bottom">-</button>
+                    <span class="RecordOfTrees_data">
+                        @Html.DisplayFor(modelItem => item.RecordOfTrees_data)
+                    </span>
+
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.RecordOfTrees_treeStatus)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.RecordOfTrees_runStage)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.RecordOfTrees_cycleStage)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.RecordOfTrees_isConsolidation)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.RecordOfTrees_iterationNo)
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+<script>
+    // Show the -+ button
+    $(document).ready(function () {
+        $(".toggle-btn").click(function ($this) {
+            console.log(this.html);
+            //this.innerHTML = this.nextElementSibling.hidden ? '+' : '-';
+
+            //this.nextElementSibling.hidden = this.nextElementSibling.hidden ? false : true;
+            this.nextElementSibling.style.display = this.nextElementSibling.style.display == 'none' ? 'block' : 'none';
+            this.innerHTML = this.nextElementSibling.style.display == 'none' ? '+' : '-';
+        });
+    });
+    // auto hide span
+    $(document).ready(function () {
+        $('span.RecordOfTrees_data').each(function () {
+            if ($(this).text().length > 300) {
+                $(this).hide('slow');
+            }
+        });
+    });
+
+    // reload page every 3 seconds
+    $(document).ready(function () {
+        setInterval(function () {
+            cache_clear()
+        }, 300000);
+    });
+
+    function cache_clear() {
+        //window.location.reload(true); TODO ??? to be uncomment in release
+    }
+</script>

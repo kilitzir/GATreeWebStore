@@ -1,0 +1,81 @@
+﻿@model IEnumerable<GAtreeWebStore.Models.TestData>
+
+@{
+    ViewData["Title"] = "Viewtests";
+}
+
+<h1>Viewtests</h1>
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Friendly name
+            </th>
+            <th>
+                Notes
+            </th>
+            <th>
+                Max trees
+            </th>
+            <th>
+                Max generations
+            </th>
+            <th>
+                Mutation propability
+            </th>
+            <th>
+                Cross Over propability
+            </th>
+            <th>
+                Generation gap
+            </th>
+            <th>
+                Correction factor
+            </th>
+            <th>
+                Other params
+            </th>
+ 
+            <th> Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestData_friendlyName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestData_notes)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestData_numberOfMaxTrees)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestData_numberOfMaxGenerations)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestData_mutationPropability)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestData_crossoverPropability)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestData_generationGap)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestData_correctionfactor)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestData_params)
+            </td>
+            <td>
+                <a asp-action="Details" asp-route-id="@item.TestData_id" class="btn btn-primary">Details</a>
+                <a asp-action="Delete" asp-route-id="@item.TestData_id" class="btn btn-danger">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

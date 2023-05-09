@@ -1,0 +1,96 @@
+﻿Δεν ελέγχουμε εάν μέσα σε  " " έχει κόμμα
+
+https://bootstrap-vue.org/docs/components/dropdown
+----------------------------------------------------------------
+
+https://stackoverflow.com/questions/46087356/how-to-recover-from-entity-framework-nightmare-database-already-has-tables-wit/46087357#46087357
+
+    Add-Migration
+    update-database
+
+    Force update database: 
+    Update-Database -TargetMigration:0 -force [This will destroy all tables and all data.]
+    Update-Database -force [use force if necessary]
+    ή Script-DbContext για να βγαλει sql εντολή για να φτιάξεις ξανα την βάση 
+    άλλος τρόπος : https://www.youtube.com/watch?v=MhvOKHUWgiY&list=PL6n9fhu94yhVkdrusLaQsfERmL_Jh4XmU&index=52 10:38
+
+    --------------------------------------------------------------------
+    https://docs.microsoft.com/en-us/sql/database-engine/configure-windows/start-stop-pause-resume-restart-sql-server-services?view=sql-server-ver16
+    WKS-0035-37\SQLEXPRESS
+    -----------------------------------------------------------------------------------
+    #	   in proocess or outOfprocess?  https://www.youtube.com/watch?v=QsXsOX6qq2c&list=PL6n9fhu94yhVkdrusLaQsfERmL_Jh4XmU&index=7
+    ---------------------------------------------------
+    Json return
+    We can return json result!! : https://www.c-sharpcorner.com/UploadFile/2ed7ae/jsonresult-type-in-mvc/
+    https://www.youtube.com/watch?v=-O0UYM0ZIIc&list=PL6n9fhu94yhVkdrusLaQsfERmL_Jh4XmU&index=20
+    ========================================================================================================
+    <!-- <a asp-action="Edit" asp-route-id="@model.Data_id">Edit</a> -->
+    ===========================================================================
+    Should we compress the json? nope, IIS compresses the data
+    -----------------------------------------------------------------------------
+    Beautify code : Ctrl+K, Ctrl+D
+    ----------------------------------------------------------------------------
+    Arff documentation 
+    https://waikato.github.io/weka-wiki/formats_and_processing/arff_stable/
+    -----------------------------------------------------------------------
+    // ============================= API CALLS ==============================================
+        // We can return json result!! : https://www.c-sharpcorner.com/UploadFile/2ed7ae/jsonresult-type-in-mvc/
+        // https://www.youtube.com/watch?v=-O0UYM0ZIIc&list=PL6n9fhu94yhVkdrusLaQsfERmL_Jh4XmU&index=20
+        // Attribute routing : https://www.youtube.com/watch?v=prNptonJAiY&list=PL6n9fhu94yhVkdrusLaQsfERmL_Jh4XmU&index=33
+        // Δηλ το routing μπορεί να ειναι /api/data/get κλπ.
+    ---------------------------------------------------------------------
+    how to script database
+    https://www.nuttyabouthosting.co.uk/knowledgebase/article/how-to-generate-database-scripts-with-data-in-sql-server 
+    ---------------------------------------------------------------------
+    Foreign key attribute
+    https://www.learnentityframeworkcore.com/configuration/data-annotation-attributes/foreignkey-attribute
+    //-----------------------------------------------
+    List<JsonTree2> ret  = new List<JsonTree2>();
+            treesUsed = new List<int>(); // the items that are going to be deleted because they are chosen
+            var trees = JsonConvert.DeserializeObject<JsonRoot>(rec2.RecordOfTrees_data).trees;
+ 
+            Random random = new Random();
+            for (int i = 0;i<noOfCrossOver; i++)
+            {
+                int ii = random.Next(0, trees.Count);
+                JsonTree tree1 = trees.ElementAt(ii);random.Next(0, trees.Count);
+                treesUsed.Add(ii);
+                int iii = random.Next(0, trees.Count);
+                //TODO maybe we need to 
+                while (iii != ii) // We don't want the same tree 
+                {
+                    iii = random.Next(0, trees.Count);
+                }
+                JsonTree tree2 = trees.ElementAt(ii); random.Next(0, trees.Count);
+                treesUsed.Add(iii);
+                ret.Add(new JsonTree2()
+                {
+                    tree1 = tree1.tree,
+                    tree2 = tree2.tree
+                });
+            }//for
+            treesUsed.Sort();
+            treesUsed = treesUsed.Distinct().ToList<int>(); //remove duplicates
+            return ret;
+    //---------------------------------------------------------------------------------
+    Post parameters
+    //https://www.youtube.com/watch?v=qL0VbepWcqk
+        //https://stackoverflow.com/questions/58150652/asp-net-core-3-0-frombody-string-content-returns-the-json-value-could-not-be
+        //https://www.tutorialsteacher.com/webapi/parameter-binding-in-web-api
+    //----------------------------------------------------------------------------
+    {
+	"attributes": [{
+		"sepallength": "5.1",
+		"sepalwidth": "3.5",
+		"petallength": "1.4",
+		"petalwidth": "0.2",
+		"class": "Iris-setosa"
+	}, {
+		"sepallength": "4.9",
+		"sepalwidth": "3.0",
+		"petallength": "1.4",
+		"petalwidth": "0.2",
+		"class": "Iris-setosa"
+	}]
+    }
+

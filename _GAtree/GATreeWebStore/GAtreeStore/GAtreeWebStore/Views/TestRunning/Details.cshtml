@@ -1,0 +1,55 @@
+﻿@model IEnumerable<GAtreeWebStore.Models.TestDataRunLog>
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h1>Details of a test run</h1>
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.TestDataRunLog_guid)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.TestDataRunLog_IterationNo)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.TestDataRunLog_data)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.TestDataRunLog_BestResult)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@if (Model is not null)
+{
+@foreach (var item in Model)
+{
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestDataRunLog_guid)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestDataRunLog_IterationNo)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestDataRunLog_data)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TestDataRunLog_BestResult)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.TestDataRunLog_id">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.TestDataRunLog_id">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.TestDataRunLog_id">Delete</a>
+            </td>
+        </tr>
+}
+}
+    </tbody>
+</table>

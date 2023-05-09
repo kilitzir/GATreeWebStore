@@ -1,0 +1,56 @@
+﻿@model IEnumerable<GAtreeWebStore.Models.Data>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js" integrity="sha384-QJHtvGhmr9XOIpI6YVutG+2QOK9T+ZnN4kzFN1RtK3zEFEIsxhlmWl5/YESvpZ13" crossorigin="anonymous"></script>
+
+<h1>Data/Index of all of data set uploaded </h1>
+
+<a class="btn btn-primary" asp-area="" asp-controller="Data" asp-action="Create">
+    <i class="bi bi-plus-circle"></i>&nbsp;&nbsp; NewItem Data from URL
+</a>
+&nbsp;&nbsp;&nbsp;
+<a class="btn btn-primary" asp-area="" asp-controller="Data" asp-action="CreateFromFile">
+    <i class="bi bi-plus-circle"></i>&nbsp;&nbsp; NewItem Data from file
+</a>
+@if (TempData.ContainsKey("message"))
+    {
+    <p class="text-danger">@TempData["message"].ToString()</p>
+    }
+
+@if (Model.Count() > 0)
+{
+    <br />
+    <table class=" table-bordered table-striped" style="width:100%">
+        <thead>
+            <tr>
+                <th class=" text-center"> ID</th>
+                <th class=" text-center"> Fiendly name</th>
+                <th class=" text-center"> Upload date</th>
+                <th class=" text-center"> Notes</th>
+                <th class=" text-center"> Viewing</th>
+                <th class=" text-center">Actions</th>
+            </tr>
+        </thead>
+
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td style="text-align:center;"> @item.Data_id</td>
+                <td style="text-align:center;"> @item.Data_friendlyname</td>
+                <td style="text-align:center;"> @item.Data_date</td>
+                <td style="white-space:pre-wrap; word-wrap:break-word"> @item.Data_notes</td>
+                <td style="text-align:center;">
+                    <a asp-controller="Data" asp-action="show" asp-route-id="@item.Data_id" class="btn btn-primary">Show all data</a>
+                    <a asp-controller="Data" asp-action="viewheader" asp-route-id="@item.Data_id" class="btn btn-primary">View Header</a>
+                    <a asp-controller="Data" asp-action="viewjson" asp-route-id="@item.Data_id" class="btn btn-primary">View Json</a>
+                    <a asp-controller="DataAttributes" asp-action="Index" asp-route-id="@item.Data_id" class="btn btn-primary">View Attributes</a>
+
+                </td>
+                <td style="text-align:center;">
+                    <a asp-controller="Data" asp-action="delete" asp-route-id="@item.Data_id" class="btn btn-danger">delete</a>
+                    <a asp-controller="TestData" asp-action="index" asp-route-id="@item.Data_id" class="btn btn-primary"> view experiments'' configuration'</a>
+                    <a asp-controller="TestData" asp-action="create" asp-route-id="@item.Data_id" class="btn btn-primary"> create new experiment configuration</a>
+                </td>
+            </tr>
+        }
+    </table>
+}

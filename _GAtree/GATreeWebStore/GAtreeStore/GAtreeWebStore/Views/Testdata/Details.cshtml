@@ -1,0 +1,75 @@
+﻿@model GAtreeWebStore.Models.TestData
+
+@{
+    ViewData["Title"] = "Testdata Details";
+}
+
+<script src="~/lib/jquery/dist/jquery.js"></script>
+<link href="~/lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet" />
+<link href="~/lib/bootstrap/dist/css/bootstrap-grid.css" rel="stylesheet" />
+<script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<h1>Details testdata</h1>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-4 float-left">
+            @Html.DisplayNameFor(model => model.TestData_id):
+            @Html.DisplayFor(model => model.TestData_id)
+        </dt>
+        <dt class="col-sm-4 float-left">
+            @Html.DisplayNameFor(model => model.TestData_friendlyName):
+            @Html.DisplayFor(model => model.TestData_friendlyName)
+        </dt>
+        <dt class="col-sm-4">
+            @Html.DisplayNameFor(model => model.TestData_notes):
+            @Html.DisplayFor(model => model.TestData_notes)
+        </dt>
+        <dt class="col-sm-4">
+            @Html.DisplayNameFor(model => model.TestData_guid): @Html.DisplayFor(model => model.TestData_guid)
+        </dt>
+        <dt class="col-sm-4">
+            @Html.DisplayNameFor(model => model.TestData_numberOfMaxTrees): @Html.DisplayFor(model => model.TestData_numberOfMaxTrees)
+        </dt>
+        <dt class="col-sm-4">
+            @Html.DisplayNameFor(model => model.TestData_numberOfMaxGenerations): @Html.DisplayFor(model => model.TestData_numberOfMaxGenerations)
+        </dt>
+
+        <dt class="col-sm-4">
+            @Html.DisplayNameFor(model => model.TestData_mutationPropability):    @Html.DisplayFor(model => model.TestData_mutationPropability)
+        </dt>
+        <dt class="col-sm-4">
+            @Html.DisplayNameFor(model => model.TestData_crossoverPropability):             @Html.DisplayFor(model => model.TestData_crossoverPropability)
+        </dt>
+        <dt class="col-sm-4">
+            @Html.DisplayNameFor(model => model.TestData_generationGap):             @Html.DisplayFor(model => model.TestData_generationGap)
+        </dt>
+        <dt class="col-sm-4">
+            @Html.DisplayNameFor(model => model.TestData_correctionfactor) :             @Html.DisplayFor(model => model.TestData_correctionfactor)
+        </dt>
+
+    </dl>
+    @Model.TestData_params
+    <h3> Other parameters</h3>
+    <script>
+        var vueparams = @Html.Raw(@Model.TestData_params);
+    </script>
+    <div id="aaa">
+        <div class="card mb-3" stye="width:30%"
+             v-for="(parameter, index) in parameters">
+            <div class="card-body">
+                <div>
+                    <span>{{parameter.name}}&nbsp; :&nbsp; {{parameter.value}}</span>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+<div>
+   
+    <a asp-action="Index">Back to List</a>
+</div>
+<script src="~/js/Testdata/details.js"></script>

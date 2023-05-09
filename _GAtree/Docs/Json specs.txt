@@ -1,0 +1,20 @@
+Step1 : Json waiting from the client
+{
+	"parameter": {
+		"clientID": "23423",
+		"RunID": "1122"
+	},
+	"data": {
+		"trees": [{
+			"tree": "dfd",
+			"evaluation": "34"
+		}]
+	}
+}
+Step1: json stored to record tree:
+{
+	"trees": [{
+		"tree": "dfd",
+		"evaluation": "34"
+	}]
+}

@@ -1,0 +1,57 @@
+﻿@model GAtreeWebStore.ViewModels.DataAddFromFileViewModel
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Create a new dataset from file";
+}
+
+<h1>
+    Create a new dataset from file
+</h1>
+<form enctype="multipart/form-data"  asp-action="CreateFromFile">
+    <div asp-validation-summary="All"></div>
+    <table>
+
+        <tr>
+            <td>
+                friendlyname:<input asp-for="Data_friendlyname" class="form-control" value="@ViewBag.text" required />
+                <span asp-validation-for="Data_friendlyname" class="text-danger"></span>
+            </td>
+            <td>Notes: <input asp-for="Data_notes" class="form-control" /> </td>
+            </tr>
+        <tr>
+            <td>
+                <br/>
+                <div class="custom-file">                    
+                    <input asp-for="file1" class="form-control custom-file-input"/>
+                    <label id ="label11" class="custom-file-label"> Choose file</label>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <br/>
+                <input type="submit" class="btn btn-info w-75" value="Create" />
+            </td>
+        </tr>
+    </table>
+    @section Scripts { 
+    <script>
+        $(document).ready(function () {
+            //alert("Fix the jquery!!")
+            $('.custom-file-input').on("change", function () {
+                //alert(2);
+                //alert($('#lable11').text());
+                //alert($(this));
+                //alert($(this).val());
+                //alert($(this).val().split("\\"));
+                //alert($(this).val().split("\\").pop());
+                var filename = $('.custom-file-input').val().split("\\").pop()
+                //alert(filename);
+                $(this).next('.custom-file-label').html(filename);
+            });
+        });
+    </script>
+    }
+</form>

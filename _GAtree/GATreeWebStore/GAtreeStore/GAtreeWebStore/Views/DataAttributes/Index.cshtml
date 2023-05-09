@@ -1,0 +1,114 @@
+﻿@model IEnumerable<GAtreeWebStore.Models.DataAttributes>
+
+@{
+    ViewData["Title"] = "Index of attributes";
+}
+
+<h1>Index of attributes</h1>
+
+<table class="table">
+    <thead>
+        <tr>            
+            <th>
+                Index No
+            </th>
+            <th>
+                Name
+            </th>
+            <th>
+                Type
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.DataAttributes_attributesData)
+            </th>
+            <th>
+                Is Class ?
+            </th>
+            <th>
+                Has null values
+            </th>
+            <th>
+                Integer - max
+            </th>
+            <th>
+                Integer - Min
+            </th>
+            <th>
+                Float - Max
+            </th>
+            <th>
+                Float - Min
+            </th>           
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model)
+{
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.DataAttributes_sn)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DataAttributes_name)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DataAttributes_type)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DataAttributes_attributesData)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DataAttributes_isClass)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DataAttributes_hasNullValues)
+            </td>
+            <td>
+                @{ if (item.data_DataAttributes_intMax != int.MinValue)
+                    {
+                        @Html.DisplayFor(modelItem => item.data_DataAttributes_intMax);
+                    }
+                   else { <strong>&nbsp;&ndash;</strong>}
+
+                }
+            </td>
+            <td>
+
+                @{ if (item.data_DataAttributes_intMin != int.MaxValue)
+                    {
+                        @Html.DisplayFor(modelItem => item.data_DataAttributes_intMin);
+
+                    }
+                    else { <strong>&nbsp;&ndash;</strong>}
+                }
+
+            </td>
+            <td>
+                @{ if (item.data_DataAttributes_floatMin != float.MaxValue)
+                    {
+                        
+                        @Html.DisplayFor(modelItem => item.data_DataAttributes_floatMin);
+
+                    }
+                    else
+                    {
+                        <strong>&nbsp;&ndash;</strong>
+                    }
+                }
+            </td>
+            <td>
+                @{ if (item.data_DataAttributes_floatMax != float.MinValue)
+                    {
+                        @Html.DisplayFor(modelItem => item.data_DataAttributes_floatMax);
+                    }
+                    else
+                    {
+                        <strong>&nbsp;&ndash;</strong>
+                    }
+                }
+            </td>
+                    
+        </tr>
+                    }
+    </tbody>
+</table>

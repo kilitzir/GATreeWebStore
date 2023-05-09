@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+https://go.microsoft.com/fwlink/?LinkID=208121. 
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <_PublishTargetUrl>c:\plsWebSite</_PublishTargetUrl>
+    <History>True|2023-01-21T21:21:07.9843311Z;True|2023-01-21T23:20:02.3011352+02:00;True|2023-01-21T23:03:49.8516913+02:00;True|2022-01-10T02:42:00.3152987+02:00;True|2022-01-10T02:25:06.8596539+02:00;</History>
+    <TimeStampOfAssociatedLegacyPublishXmlFile />
+  </PropertyGroup>
+  <ItemGroup>
+    <DestinationConnectionStrings Include="SQLConnection">
+      <Value>Server=localhost\SQLEXPRESS%3bDatabase=Test1%3bUser Id=user1%3bPassword=12345678%3bMultipleActiveResultSets=true%3bTrusted_Connection=True</Value>
+    </DestinationConnectionStrings>
+  </ItemGroup>
+</Project>

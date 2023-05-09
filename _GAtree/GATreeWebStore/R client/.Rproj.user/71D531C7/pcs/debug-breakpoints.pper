@@ -1,0 +1,21 @@
+{
+    "debugBreakpointsState": {
+        "breakpoints": [
+            {
+                "id": 1,
+                "path": "E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/R client/Circle.R",
+                "line_number": 79,
+                "function_steps": "",
+                "function_name": "GA.crossOver",
+                "state": 2,
+                "editor_state": 2,
+                "editor_line_number": 79,
+                "is_pending_debug_completion": true,
+                "needs_updated_steps": false,
+                "type": 0,
+                "is_package_breakpoint": false,
+                "package_name": ""
+            }
+        ]
+    }
+}

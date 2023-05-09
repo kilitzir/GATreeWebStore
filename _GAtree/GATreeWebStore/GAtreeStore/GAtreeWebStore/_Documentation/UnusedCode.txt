@@ -1,0 +1,498 @@
+﻿----JsonDataController.cs
+namespace GAtreeWebStore.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class JsonDataController : ControllerBase
+    {
+        private readonly ApplicationDBContext _db;
+        public JsonDataController(ApplicationDBContext db)
+        {
+            _db = db;
+        }
+        /// <summary>
+        /// Sends the data or the attributes in Json style 
+        /// </summary>
+        /// <param name="ss">either data or dataattributes</param>
+        /// <param name="id"></param>
+        /// <returns>either the data or the dataatributes in json style</returns>
+        /// http://localhost:29999/API/JSONData/GETDATA/1
+        /// localhost:29999/API/JSONData/GETDATATTRIBUTES/1023 
+        //[Route("/api/data")] : iT WORKS but the params are always  null??!!
+        [HttpGet("{ss}/{id}")]
+        public string Get(string ss, int? id)
+        {
+            int id1 = id ?? -1;
+            string ss1 = ss?? null;
+            switch (ss1.ToUpper())
+            {
+                case "GETDATA":
+                    return Utils.GetDataFromdataId(id1,_db);
+
+                case "GETDATATTRIBUTES":
+                    return Utils.GetDataAttributes2Json(id1,_db);
+                default: return JsonConvert.SerializeObject(new
+                {
+                    result = false,
+                    Message = "Type is wrong: either DATA or DATATTRIBUTES"
+                });
+
+            }
+            
+        }
+    }
+
+}
+----------------------------- JsonCycleController
+      //-------------------------------------- Step 2.1 ------------------------------------
+        static void Step2Init(int testDataRunId, ApplicationDBContext db)
+        {
+            //update the run record
+            var run1 = db.GATreeTestDataRun.Find(testDataRunId);
+            if (run1 is null)
+            {
+                Utils.AddLogging($"initStep2:no record found ", db);
+                return;
+            }
+            
+            var rec1 = db.GATRecordOfTrees.Where(x => x.RecordOfTrees_isConsolidation == true &&
+                                                      x.RecordOfTrees_iterationNo == run1.TestDataRun_CurrentIterationNumber &&
+                                                      x.Test_data_run_id == run1.Test_data_run_id
+                                                      ).ToList()[0];
+            if (rec1 is null)
+            {
+                Utils.AddLogging($"initStep2:rec1 is null {testDataRunId} ", db);
+                return;
+            }
+            run1.TestDataRun_cycleStage = CycleStage.Choosing;
+            run1.TestDataRun_CurrentIterationNumber = run1.TestDataRun_CurrentIterationNumber == -1 ? 1 : run1.TestDataRun_CurrentIterationNumber;
+            db.SaveChanges();
+            // create a new consolidated treerecord for this step
+            db.GATRecordOfTrees.Add(new RecordTree()
+            {
+                RecordOfTrees_cycleStage = run1.TestDataRun_cycleStage,
+                RecordOfTrees_iterationNo = run1.TestDataRun_CurrentIterationNumber,
+                RecordOfTrees_runStage = run1.TestDataRun_runStage,
+                RecordOfTrees_data = rec1.RecordOfTrees_data,
+                RecordTrees_thinClientGuid = rec1.RecordTrees_thinClientGuid,
+                Test_data_run_id = rec1.Test_data_run_id,
+                RecordOfTrees_isConsolidation = true,
+                RecordOfTrees_treeStatus =TreesStatus.Finished,
+            });
+            db.SaveChanges();
+
+            db.GATreeTestDataRunLog.Add(new TestDataRunLog()
+            {
+                TestDataRunLog_CycleStage = run1.TestDataRun_cycleStage,
+                TestDataRunLog_IterationNo = run1.TestDataRun_CurrentIterationNumber,
+                Test_data_run_id = run1.Test_data_run_id,
+            });            
+            db.SaveChanges();
+            Step2lastAction(testDataRunId, db);
+            
+        }
+        /// <summary>
+        /// Step 2 last actions - prepare the transition to step3
+        /// </summary>
+        /// <param name="testDataRunId"></param>
+        /// <param name="db"></param>
+        static void Step2lastAction(int testDataRunId, ApplicationDBContext db)
+        {
+            Step3Point2CrossOverInit(testDataRunId, db);
+        }
+//----------------------------------------- testdataRunApiController.cs
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using GAtreeWebStore.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http.Extensions;
+/// <summary>
+/// Controller to put information to the test runs
+/// </summary>
+
+// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+
+namespace GAtreeWebStore.Controllers
+{
+    [Route("api/[controller]")]
+    //http://localhost:29999/API/testDataRunApi/ ??
+    [ApiController]
+    public class testDataRunApiController : ControllerBase
+    {
+        private readonly ApplicationDBContext _db;
+        public testDataRunApiController(ApplicationDBContext db)
+        {
+            _db = db;
+        }
+        // GET: api/<testDataRunApiController>
+        [HttpGet]
+        public IEnumerable<string> Get()
+        {
+            return new string[] { "Controller is working fine", "Everything is OK" };
+        }
+
+        // GET api/<testDataRunApiController>/5
+        [HttpGet("{id}")]
+        public string Get(int id)
+        {
+            return "value";
+        }
+
+        // POST api/<testDataRunApiController>
+        [HttpPost]
+        public void Post([FromBody] string value)
+        {
+        }
+
+        // PUT api/<testDataRunApiController>/5
+        [HttpPut("{id}")]
+        public IActionResult Put(int id, [FromBody] string value)
+        {
+            return BadRequest();
+        }
+
+        // DELETE api/<testDataRunApiController>/5
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int? id)
+        {
+            return BadRequest();
+        }
+    }
+}
+//-----------------------------------DataTestRunController
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using GAtreeWebStore.Models;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Http.Extensions;
+
+namespace GAtreeWebStore.Controllers
+{
+    
+    public class DataTestRunController
+    {
+        private readonly ApplicationDBContext _db;
+        public DataTestRunController(ApplicationDBContext db)
+        {
+            _db = db;
+        }
+        /// <summary>
+        /// Creates a new testRun and calls to show it
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public ActionResult CreateNew(int? id)
+        {
+            return null;
+        }
+
+        // ============================= API CALLS ==============================================
+        
+    }
+}
+//----------------------------------------------------- jsonThinclients.cs
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http.Extensions;
+
+
+namespace GAtreeWebStore.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class Thinclient : ControllerBase
+    {
+        private readonly ApplicationDBContext _db; // TODO: needed?
+        public Thinclient(ApplicationDBContext db)
+        {
+            _db = db;
+        }
+        // http://localhost:29999/api/cycle/1/efere
+        // http://localhost:29999/api/cycle/REGISTER/1/{29f16a45-c424-4aec-80b5-505f7b732c23}
+        // http://localhost:29999/api/cycle/UNREGISTER/1/{29f16a45-c424-4aec-80b5-505f7b732c23}
+        [HttpGet("{string1}/{id}/{guid1}")]
+        public string Get(string string1, int? id, string guid1)
+        {
+            /// TODO return the guid for the thin client !!!!
+
+            
+            if (id is null || !Guid.TryParse(guid1, out Guid guid))
+            {
+
+                return JsonConvert.SerializeObject(new 
+                {
+                    result = false,
+                    Message = "ID or GUID has errors"
+                });
+            }
+            return null;
+            //return Utils.RegisterNewClient(string1, (int)(id is not null ? id : default), guid, _db);
+        }
+        
+    }
+}
+//--------------------------------------------------jsonParametersController.cs
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http.Extensions;
+
+// Gets the parameters
+
+namespace GAtreeWebStore.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ParametersController : ControllerBase
+    {
+        private readonly ApplicationDBContext _db;
+        public ParametersController(ApplicationDBContext db)
+        {
+            _db = db;
+        }
+        // GET: api/<ParametersController>
+        /// <summary>
+        /// sends the parameters in Json 
+        /// </summary>
+        /// <parameters></parameters>
+        /// <returns></returns>
+        [HttpGet]
+        public string Get()
+        {
+            return JsonConvert.SerializeObject( new string[] { "Error", "No parameters: call with /Guid_of_client/id_of_run" });            
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="string1">the guid of the client</param>
+        /// <param name="id">the id of the test run</param>
+        /// <returns></returns>
+        [HttpGet("{string1}/{id}")]
+        // http://localhost:29999/api/parameters/29f16a45-c424-4aec-80b5-505f7b732c23/12
+        public string Get(string string1, int id)
+        {
+            if (!Guid.TryParse(string1,out Guid guid))
+                return JsonConvert.SerializeObject(new string[] { "Error", "Error in GUID : call with /Guid_of_client/id_of_run" });
+
+            return Utils.GetTestDataParameters(id, guid, _db);
+
+        }
+    }
+}
+//----------------------------------------------------------JsonClientController.cs
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http.Extensions;
+using GAtreeWebStore.ViewModels;
+/// <summary>
+/// Registers a new client. The client must pass the ID of the testdaata plus a GUID.
+/// This GUID will be used in all the communication between thin client and Web server
+/// </summary>
+
+namespace GAtreeWebStore.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ClientController : ControllerBase
+    {
+        private readonly ApplicationDBContext _db;
+        // "
+        public ClientController(ApplicationDBContext db)
+        {
+            _db = db;
+        }
+        /// 
+        //http://localhost:29999/api/cycle/REGISTER/1/{29f16a45-c424-4aec-80b5-505f7b732c23}
+        //http://localhost:29999/api/cycle/UNREGISTER/1/{29f16a45-c424-4aec-80b5-505f7b732c23}
+        [HttpGet("{ss}/{id}/{guid1}")]
+        public string Get(string ss, int? id, string guid1)
+        {
+            ///SOS has beem consolidated to jsoncycleController
+            if (id is null || !Guid.TryParse(guid1, out Guid guid))
+            {
+                
+                return JsonConvert.SerializeObject(new JsonServerResponse()
+                {
+                    result = "FALSE",
+                    message = "ID or GUID has errors"
+                });
+            }
+            return null;
+            //return Utils.RegisterNewClient(ss??ss, (int)(id is not null ? id:-1), guid, _db);
+            
+        }
+
+    }
+}
+    
+//---------------------------------------------------------------- DataJsonController.cs
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using GAtreeWebStore.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http.Extensions;
+//===========================
+// Just to learn how to use Web api - will be deleted
+//=========================
+
+// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+
+namespace GAtreeWebStore.Controllers
+{
+    [Route("api/data/[controller]")]
+    [ApiController]
+    public class DataJsonController : ControllerBase
+    {
+        private readonly ApplicationDBContext _db;
+        public DataJsonController(ApplicationDBContext db)
+        {
+            _db = db;
+        }
+        // GET: api/<DataApiController>
+        //http://localhost:29999/API/dataapi/
+        [HttpGet]
+        public string Get()
+        {
+            return "Error";
+        }
+
+        // GET api/<DataApiController>/5
+        //http://localhost:29999/api/dataapi/8
+        [HttpGet("{id}")]
+        public string Get(int? id)
+        {
+            // SOS - Code has been consolidated to jsonCycleController
+            if (id is null || id == -1)
+                return "Error" + "Id is invalid or not passed";
+
+            //var  a = _db.GATreeTestDataRun.Include(x => x.testdata).Include(y => y.Test_data_run_id == id);
+            //var a = _db.GATreeTestDataRun.Include(y => y.Test_data_run_id == id);
+            IQueryable<TestDataRun> a = _db.GATreeTestDataRun.Include(x => x.testdata).Where(y => y.Test_data_run_id == id);
+            if (a is null)
+                return "Error" + "Id is invalid or datatestrun not found";
+            TestData b = a.First().testdata;
+            if (b is null)
+                return "Error" + "testdata not found";
+
+            IQueryable<Data> aa = _db.GATreeData.Where(y => y.Data_id == b.TestData_data_id);
+            if (aa is null)
+                return "Error" + "data not found";
+            var s = aa.First().Data_json; /// TODO: give only the paraqmeters that is needed!
+            return s;
+        }
+
+        // POST api/<DataApiController>
+        [HttpPost]
+        public void Post([FromBody] string value)
+        {
+        }
+
+        // PUT api/<DataApiController>/5
+        [HttpPut("{id}")]
+        public void Put(int id, [FromBody] string value)
+        {
+        }
+
+        // DELETE api/<DataApiController>/5
+        [HttpDelete("{id}")]
+        public void Delete(int id)
+        {
+        }
+    }
+    //------------------------------- Get notes
+    [Route("api/notesdata/[controller]")]
+    [ApiController]
+    // http://localhost:29999/api/notesdata/DataNotes/8
+    public class DataHeaderController : ControllerBase
+    {
+        private readonly ApplicationDBContext _db;
+        public DataHeaderController(ApplicationDBContext db)
+        {
+            _db = db;
+        }
+        [HttpGet("{id}")]
+        public string Get(int? id)
+        {
+            if (id is null || id == -1)
+                return "Error" + "Id is invalid or not passed";
+
+            //var  a = _db.GATreeTestDataRun.Include(x => x.testdata).Include(y => y.Test_data_run_id == id);
+            //var a = _db.GATreeTestDataRun.Include(y => y.Test_data_run_id == id);
+            IQueryable<TestDataRun> a = _db.GATreeTestDataRun.Include(x => x.testdata).Where(y => y.Test_data_run_id == id);
+            if (a is null)
+                return "Error" + "Id is invalid or datatestrun not found";
+            TestData b = a.First().testdata;
+            if (b is null)
+                return "Error" + "testdata not found";
+
+            IQueryable<Data> aa = _db.GATreeData.Where(y => y.Data_id == b.TestData_data_id);
+            if (aa is null)
+                return "Error" + "data not found";
+            var s = aa.First().Data_header; /// TODO: give only the paraqmeters that is needed!
+            return s;
+        }
+
+    }
+    //------------------------------- Get data-header
+    [Route("api/notesheader/[controller]")]
+    [ApiController]
+    //http://localhost:29999/api/notesdata/DataNotes/8 ?
+    public class notesheaderController : ControllerBase
+    {
+        private readonly ApplicationDBContext _db;
+        public notesheaderController(ApplicationDBContext db)
+        {
+            _db = db;
+        }
+        [HttpGet("{id}")]
+        public string Get(int? id)
+        {
+            if (id is null || id == -1)
+                return "Error" + "Id is invalid or not passed";
+
+            //var  a = _db.GATreeTestDataRun.Include(x => x.testdata).Include(y => y.Test_data_run_id == id);
+            //var a = _db.GATreeTestDataRun.Include(y => y.Test_data_run_id == id);
+            IQueryable<TestDataRun> a = _db.GATreeTestDataRun.Include(x => x.testdata).Where(y => y.Test_data_run_id == id);
+            if (a is null)
+                return "Error" + "Id is invalid or datatestrun not found";
+            TestData b = a.First().testdata;
+            if (b is null)
+                return "Error" + "testdata not found";
+
+            IQueryable<Data> aa = _db.GATreeData.Where(y => y.Data_id == b.TestData_data_id);
+            if (aa is null)
+                return "Error" + "data not found";
+            var s = aa.First().Data_header; /// TODO: give only the paraqmeters that is needed!
+            return s;
+        }
+
+    }
+}
+//--------------------------------------------------------------------------------------
+
+
+
+

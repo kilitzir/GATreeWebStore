@@ -1,0 +1,53 @@
+﻿@model IEnumerable<GAtreeWebStore.Models.ThinClient>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index of thin clients</h1>
+@if (TempData.ContainsKey("message"))
+{
+    <p class="text-danger">@TempData["message"].ToString()</p>
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.ThinClient_guid)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ThinClient_isRunActive)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.thinClient_isActive)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Test_data_run_id)
+            </th>
+            <th>actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td style="text-align:center;">
+                    @Html.DisplayFor(modelItem => item.ThinClient_guid)
+                </td>
+                <td style="text-align:center;">
+                    @Html.DisplayFor(modelItem => item.ThinClient_isRunActive)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.thinClient_isActive)
+                </td>
+                <td style="text-align:center;">
+                    @Html.DisplayFor(modelItem => item.Test_data_run_id)
+                </td>
+                <td style="text-align:center;">
+                    <a asp-action="Delete" asp-route-id="@item.ThinClient_id" class="btn btn-danger">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

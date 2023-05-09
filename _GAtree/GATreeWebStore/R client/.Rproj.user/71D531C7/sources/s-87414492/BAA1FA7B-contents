@@ -1,0 +1,835 @@
+# install.packages("caret")
+# install.packages("DiagrammeR")
+# install.packages("parallel")
+# install.packages("lattice")
+# install.packages("ggplot2")
+# install.packages("doParallel")
+# install.packages("e1071")
+## run τις παραπάνω γραμμές την πρώτη φορά
+library(parallel)
+library(DiagrammeR)
+library(caret)
+library(doParallel)
+library(foreach)
+library(e1071)
+
+
+readFile<-function(filename = NULL) { 
+  #ΠΑΡΑΜΕΤΡΟΣ: Όνομα αρχείου 
+  #Εάν δεν περαστεί όνομα αρχείου σαν παράμετρος τότε ανοίγει 
+  #πλαίσιο διαλόγου επιλογής αρχείου
+  if (is.null(filename)){
+    Filters <- matrix(c("Arff files", "*.arff", "All files", "*"),
+                      2, 2, byrow = TRUE)
+    filename <- choose.files(default = "*.arff", caption = "Select file",
+                             multi = FALSE, filters = Filters,
+                             index = nrow(Filters))
+  }
+  #Διάβασμα αρχείου σε γραμμές
+  my_data <- read.delim(filename, header = FALSE,sep="\n", stringsAsFactor = FALSE)
+  
+  linesOFfile = dim(my_data)[1] #Πλήθος γραμμών αρχείου
+  capt = NULL  #Όνομα και τύπος χαρακτηριστικών  
+  
+  for (i in 1:linesOFfile ){
+    
+    txt= paste( my_data[i,])
+    txt=gsub("\t"," ",txt) #Αφαίρεση τυχών αρχικών κενών ή tab
+    if (trim.leading(substr(txt,1,1)) == "%") next #Γραμμή με σχόλια
+    else if (trim.leading(toupper(substr(txt,1,10))== "@ATTRIBUTE")){
+      capt=c(capt, substr(txt,12,nchar(txt))) # προσθέτουμε χαρακτηριστικά
+    } else if (trim.leading(toupper(substr(txt,1,5))== "@DATA")){
+      #εάν διαβάσουμε @DATA οι επόμενες γραμμές έχουν δεδομένα
+      if (is.null(capt))  {
+        cat ("ERROR NO ATTRIBUTES.\n")
+      } else { 
+        my_data <- my_data[i+1:linesOFfile,] #διαβάζουμε τα δεδομένα
+        my_data <- na.omit(my_data)    #Αφαίρεση τυχών κενών γραμμών
+        my_data <- my_data[!grepl("%",my_data, useBytes = TRUE)] #αφαίρεση γραμμών σχολίων
+        #μετατροπή σε πίνακα
+        table_data <- read.csv(text=paste(my_data, collapse='\n'), 
+                               header = FALSE, 
+                               stringsAsFactors = FALSE, 
+                               sep=',')
+        table_data[table_data == "?"]<- NA #Αντικατάσταση "?" με ΝΑ
+        table_data[table_data == "'"]<- "" 
+        
+        #διαγραφή αρχικών κενών
+        # for (j in 1:length(table_data[,1])){
+        #  table_data[j,] = lapply(table_data[j,], trim.leading)
+        #}
+        
+        caption = NULL #Λίστα ονομάτων Χαρακτηριστικών
+        #Η πρώτη λέξη της λίστας capt έχει τα ονόματα των χαρακτηριστικών
+        caption = c(caption, substr(trim.leading(capt),1,unlist(lapply(gregexpr(pattern = ' ', trim.leading(capt)), min))-1))
+        #διαγράφουμε τα κενά πριν και μετά το ονόματα χαρακτηριστικών
+        capt = trimws(capt, whitespace = "[ \t\r\n]")
+        #capt=trim.leading(capt)
+    
+        #Διάβασμα των τύπων δεδομένων
+        capt =substr(capt,unlist(lapply(gregexpr(pattern = ' ', capt), min))+1, nchar(capt))
+        capt=trim.leading(capt) 
+        colType= vector(mode="list", length=length(capt)) 
+        for (j in 1:length(capt)){
+          if (toupper(capt[j]) == "STRING"){
+            temp <- levels(as.factor(table_data[,j]))
+            if (length(temp)> 100) {
+              caption[j]<- paste(caption[j], "Too many diferent values. Do Not Use")
+              colType[j] = "Many Values"
+            } else {
+              temp <- temp[!is.na(temp)] 
+              colType[[j]]=temp
+            }  
+          }
+          else if (toupper(capt[j]) == "NUMERIC" || (toupper(capt[j]) == "REAL")|| (toupper(capt[j]) == "INTEGER")) colType[j]="NUMERIC"
+          else colType[j]=strsplit(substr(capt[j],2,nchar(capt[j])-1),",") #λίστα διακριτών τιμών         
+        }
+        caption = cbind(caption, colType)
+        
+        if (ncol(table_data) == length(caption[,1])) colnames(table_data) <- caption[,1]
+        else cat("ERROR Num of columns and num of attr are diferent \n") 
+        break
+      }
+    }
+  }
+  
+  #Επιλογή Χαρακτηριστικών και Κλάσης
+  cat("\nPlease select Attribute(s) and Class columns \n")
+  cCaption= select.list(caption[,1] , multiple = TRUE )
+  
+
+  #Επιλογή Κλάσης
+  caption = caption[caption[,1] %in% c(cCaption),]
+  cat("\nPlease select the Class Attribute \n")
+  cClass= select.list(cCaption)
+  Data<- list(table_data=table_data,caption=caption, class=cClass)
+  return(Data)
+}
+
+trim.leading <- function (x)  sub("^\\s+", "", x)
+
+
+
+
+create_tree <- function(V, DataTypes, data_min,data_max, Nc){
+  #Παράμετροι:
+  #V: Αριθμός Χαρακτηριστικών
+  #DataTypes: Οι τύποι δεδομένων κάθε χαρακτηριστικού ("NUMERIC" ή λίστα διακριτών τιμών)
+  #data_min: ελάχιστο δεδομένων.
+  #data_max: μέγιστο δεδομένων.
+  #Nc: αριθμός κλάσεων.
+  
+  #μεταβλητή διαχωρισμού (κόμβοι: θα έχουν τιμή, φύλλα: var = 0).
+  var <- vector(mode="numeric", length=3) 
+  #τιμή διαχωρισμού (κόμβοι: θα έχουν τιμή, φύλλα: split = 0).
+  split <- vector(mode="numeric", length=3)
+  #class output (φύλλα: θα έχουν τιμή, κόμβοι: class = 0).
+  class <- vector(mode="numeric", length=3)
+  
+  #επιλογή ενός τυχαίου χαρακτηριστικού από 1 ως V. Η τιμή ανατίθεται μόνο για τη ρίζα (κόμβος 1).
+  var[1] <- sample(1:V, 1)
+
+  if (DataTypes[[var[1]]][1]== "NUMERIC") {
+     #τυχαία τιμή μεταξύ τoυ ελάχιστου και του μέγιστου των δεδομένων. Η τιμή ανατίθεται μόνο για τη ρίζα (κόμβος 1).
+     split[1] = runif(1, as.double(data_min[var[1]]), as.double( data_max[var[1]]))
+  } 
+  else { # Το χαρακτηριστικό παίρνει διακριτές τιμές 
+      #Τυχαία τιμή από τις διακριτές της μεταβλητης
+      split[1] = trim.leading(sample(DataTypes[[var[1]]],1))
+  }
+  #επιλογή μιας τυχαίας κλάσης από 1 ως Nc. Η τιμή ανατίθεται μόνο για τα φύλλα (κόμβοι 2 και 3).
+  class[2:3] = sample(1:Nc, 2, replace=T) 
+  #set children. Μόνο ο 1ος κόμβος έχει παιδιά.
+  lChild = c(2,0,0) 
+  rChild = c(3,0,0)
+  #ids. αριστερό παιδί είναι 2*κ, δεξί παιδί είναι 2*κ+1.
+  id = 1:3
+  tree <- cbind(id, var, split, class, lChild, rChild)
+  
+  row.names(tree) = as.character(id) 
+
+  return(tree)
+}
+
+predict_tree <- function(tree, Data, DataTypes){
+  #Παράμετροι:
+  #tree: Το δέντρο με βάση το οποίο κάνουμε πρόβλεψη
+  #Data: Ο πίνακας με τα δεδομένα
+  #DataTypes: Οι τύποι δεδομένων κάθε χαρακτηριστικού ("NUMERIC" ή λίστα διακριτών τιμών)
+  
+  N <- dim(Data)[1]                             #αριθμός δειγμάτων δεδομένων.
+  prediction = vector(mode="numeric", length=N)  
+  
+  for(d in 1:N){  #Για κάθε δείγμα
+    k <- "1"                                    #ξεκινάμε από την ρίζα.
+    
+    while((v=tree[k,"var"]) > 0){               #Αν var == 0, τότε είμαστε σε φύλλο.
+      v=as.integer(v)
+      if (is.na(Data[d,v]))  # εάν έχουμε missing value
+        #επιλέγεται τυχαία ένα από τα δύο παιδιά
+        k<- sample(c(as.character(tree[k,"lChild"]),as.character(tree[k,"rChild"])),1)
+      else 
+        if (DataTypes[[v]][1] == "NUMERIC" ) {  
+          if (Data[d,v] < tree[k,"split"]){         #Αν var < split
+            #αριστερά
+            k <- as.character(tree[k,"lChild"])
+          }else{
+            #δεξιά
+            k <- as.character(tree[k,"rChild"])
+          }
+        } else {  # Το χαρακτηριστικό παίρνει διακριτές τιμές 
+          if (Data[d,v] == tree[k,"split"]){         #Αν var = split
+            #αριστερά
+            k <- as.character(tree[k,"lChild"])
+          }else{
+            #δεξιά
+            k <- as.character(tree[k,"rChild"])
+          }      
+        }
+    }
+    
+    prediction[d] <- tree[k,"class"]            #η κλάση του φύλλου k.
+  }
+  return(prediction)
+}
+
+payoff <- function(tree, Data, DataTypes, Class, x){
+  #Παράμετροι:
+  #tree: Το δεντρο του οποίου υπολογίζουμε την απόδοση
+  #Data: Ο πίνακας με τα δεδομένα
+  #DataTypes: Οι τύποι δεδομένων κάθε χαρακτηριστικού ("NUMERIC" ή λίστα διακριτών τιμών)
+  #Class: Οι πραγματικές κλάσεις των δεδομένων
+  #x: Συντελεστής διόρθωσης
+  browser()
+  p = predict_tree(tree, Data, DataTypes)    #πρόβλεψη με χρήση της predict_tree.
+  c = as.numeric(Class)                      #διάνυσμα με τις κλάσεις. 
+  correctClassified = sum(c == p)            #αριθμός σωστών δειγμάτων.
+  L = length(tree[,"id"])                    #αριθμός κόμβων.
+  a = (correctClassified^2) * x / (L^2 + x) 
+  return(a)
+}
+
+
+payoff_trees <-function(trees, Data, DataTypes, Class, x){
+  #Παράμετροι:
+  #trees: λίστα με τα δέντρα της γεννιάς 
+  #Data: Ο πίνακας με τα δεδομένα
+  #DataTypes: Οι τύποι δεδομένων κάθε χαρακτηρηστικού ("NUMERIC" ή λίστα διακριτών τιμών)
+  #Class: Οι πραγματικές κλάσεις των δεδομένων
+  #x: Συντελεστής διόρθωσης
+  
+  nTrees = length(trees)                  #αριθμός δέντρων.
+  a = vector(mode="numeric", length = NTrees)  #διάνυσμα με μέγεθος NTree (όσα και τα δέντρα).
+  stime <- system.time({  # Μετρητής χρόνου ολοκλήρωσης
+    
+#== Σειριακή Εκτελεση ===============================================   
+  # for (i in 1: NTrees){                   #payoff για κάθε δέντρο.
+  #   a[i] = payoff(trees[[i]], Data,DataTypes, Class, x)
+  # }
+#== Παράλληλη Εκτέλεση σε n.cores νήματα ============================
+    closeAllConnections() # κλεινει τυχών ανοικτά session από προηγούμενη εκτέλεση
+    n.cores <- detectCores()  # Υπολογίζει τα διαθέσιμα υπολογιστικά Νήματα
+    #Δημιουργούμε n.cores νήματα και κάνουμε διαθέσιμα σε αυτά όλα τα αντικείμενα που χρειάζονται
+    cl <- makeCluster(n.cores[1])
+    registerDoParallel(cl)
+    clusterExport(cl,
+                  list("predict_tree", "DataTypes", "payoff", "trees", "Data", "Class", "x"),
+                  envir=environment())
+    #Εκτελείται υπολογισμός απόδοσης των δέντρων
+    #Η εκτέλεση γίνεται σε n.cores νήματα υπολογίζοντας την απόδοση για  n.cores δέντρα ταυτόχρονα
+    a <- foreach(i = 1: NTrees, .combine=c   ) %dopar%
+        {
+          payoff(trees[[i]], Data, DataTypes, Class, x) #payoff για κάθε δέντρο
+        }
+    stopCluster(cl)
+#====================================================================
+       })[3] #System.time close
+       cat("\n")
+       print(stime)
+  return(a)
+}
+
+
+roulette <- function(a, N){
+  #Παράμετροι:
+  #a: οι βαθμολογίες της fitness function, cumsum υπολογίζει τα διαστήματα με βάση το a κάθε δέντρου. 
+  #Ν: το πλήθος των δέντρων που θα μεταλαχθούν -διασταυρωθούν
+  
+  S = cumsum(a)             #cumulative summary.
+  r = runif(N,0,max(S))     #N τυχαίοι αριθμοί στο διάστημα[0, S].
+  
+  result = vector(mode="numeric", length=N)  
+  for (i in 1:N){
+    #βρίσκει σε ποιο υποδιάστημα ανήκει ο κάθε τυχαίος αριθμός.
+    for (k in 1:length(a)){
+      if (r[i] < S[k]){
+        result[i] = k
+        break
+      }
+    }
+  }
+  return(result)
+}
+
+
+get_subtree <- function(tree, i){
+  #H get subtree παίρνει ένα υποδέντρο ξεκινώντας από έναν κόμβο i ενός δέντρου με N κόμβους.
+  #Παράμετροι:
+  #tree: Το αρχικό δέντρο 
+  #i: Αριθμός κόμβου από το  οποίο θα πάρουμε το υποδέντρο
+
+  subtree = c()
+  to_check = i
+
+  while(length(to_check)>0){
+    n = as.character(to_check[1])
+    subtree = c(subtree, n)   #εισάγει τον κόμβο στο υποδέντρο. 
+    to_check = to_check[-1]   #διαγραφή του κόμβου από τη λίστα.
+    
+    
+    if (tree[n,"var"]!="0"){       #αν είναι εσωτερικός κόμβος τότε εισάγονται τα παιδιά του στη λίστα.
+      to_check = c(to_check, tree[n,"lChild"], tree[n,"rChild"])
+    }
+  }
+  return(subtree)
+}
+
+
+copy_subtree <- function(source, source_node, target, target_node){
+  #Παράμετροι:
+  #source: Το δέντρο από το οποίο θα αντιγράψουμε υποδέντρο
+  #source_node: ο αριθμός κόμβου του source απο τον οποίο θα γίνει η αντιγραφή
+  #target: Το δέντρο στο το οποίο θα αντιγράψουμε υποδέντρο
+  #target_node: ο αριθμός κόμβου του target στον οποίο θα γίνει η αντιγραφή
+
+  #διαγραφή όλων των κόμβων που βρίσκονται κάτω απο τον target κόμβο. 
+  old_nodes = get_subtree(target, target_node)
+  target[old_nodes,"id"] = -1
+  to_keep =(as.integer(target[,"id"]) > 0)
+  target = target[to_keep,]
+  
+  #προσθέτει νέους κόμβους, ενημερώνοντας id, rChild, lChild ανάλογα με τη θέση του κόμβου στόχου.
+  source_subtree = get_subtree(source, source_node) 
+  new_ids = target_node
+  for(i in 1:length(source_subtree)){
+    #copy τις πληροφορίες στο new_node.
+    new_node = source[source_subtree[i],]
+    #set το νέο id.
+    new_node["id"] = new_ids[1] 
+    if (new_node["var"] > 0){
+      #εάν είναι εσωτερικός κόμβος ενημερώνονται τα παιδιά. 
+      new_node["lChild"] = 2*as.integer(new_ids[1])
+      new_node["rChild"] = 2*as.integer(new_ids[1]) + 1
+      new_ids = c(new_ids, 2*as.integer(new_ids[1]), 2*as.integer(new_ids[1]) + 1) 
+    }else{
+      #φύλλο.
+      new_node["lChild"] = 0
+      new_node["rChild"] = 0
+    }
+    #διαγραφή κόμβου από new_ids.
+    new_ids = new_ids[-1]
+    #προσθέτει νέα γραμμή στο δέντρο (τον κόμβο). 
+    target = rbind(target, new_node)
+  }
+  row.names(target) = as.character(target[,"id"])
+  return(target)
+}
+
+
+crossover <- function(trees, p_cr){
+  #διασταύρωση με πιθανότητα p_cr.
+  #επιλογή ανά 2 γονέων, επιλογή 2 κόμβων, ανταλλαγή υποδέντρων , δημιουργία 2 παιδιών.
+  #Παράμετροι:
+  #trees: λίστα με τα δέντρα της γενιάς 
+  #p_cr: Η πιθανότητα διασταύρωσης
+  
+  NTrees = length(trees)
+  p = runif(NTrees, 0, 1)#NTrees τυχαίοι αριθμοί απο το 0 έως το 1.
+  p_bin = p < p_cr      #από τους τυχαίους αριθμούς αυτοί που είναι μικρότερη του p_cr. 
+  co = which(p_bin)     #index από τα δέντρα που επιλέχθηκαν για διασταύρωση.
+  N_co = sum(p_bin)     #το πλήθος των δέντρων που επιλέχθηκαν για διασταύρωση. 
+  co = sample(co, N_co) #τυχαία αλλαγή της σειράς των δέντρων (ανακατεύονται). 
+  #αν είναι περιττό το πλήθος των δέντρων που έχουν επιλεχθεί να διασταυρωθούν αφαιρούμε το τελευταίο.
+  if ((N_co %% 2) == 1){
+    N_co = N_co - 1
+    co = co[1:N_co]
+  }
+  #το δέντρο i και το δέντρο i+1 θα διασταυρωθούν.
+  for(i in seq(1, N_co, by = 2)){ #επιλογή 2 δέντρων κάθε φορά με σειρά. 
+    p1 = co[i] 
+    p2 = co[i+1]
+    
+    parent1 = trees[[p1]] #γονέας 1.
+    parent2 = trees[[p2]] #γονέας 2.
+    #L1, L2: non-leaves nodes.
+    L1 = length(parent1[,"id"]) 
+    L2 = length(parent2[,"id"])
+    #τυχαία επιλογή 1 κόμβου για κάθε γονέα.
+    i1 = sample(1:L1,1)
+    i2 = sample(1:L2,1)
+    #id κόμβου για κάθε γονέα.
+    node1 = parent1[i1,"id"] 
+    node2 = parent2[i2,"id"]
+    child1 = parent1 
+    child2 = parent2
+    
+    #ανταλλαγή υποδέντρων με χρήση της copy_subtree.
+    child1 = copy_subtree(parent2, node2, child1, node1)
+    child2 = copy_subtree(parent1, node1, child2, node2)  
+    
+    trees[[p1]] = child1 
+    trees[[p2]] = child2
+  }
+  return(trees)
+}
+
+
+mutate <-function(trees, DataTypes, data_min, data_max, Nc, p_mutate){
+  #μετάλλαξη των δέντρων με χρήση της p_mutate.
+  #Παράμετροι:
+  #trees: λίστα με τα δέντρα της γεννιάς 
+  #DataTypes: Οι τύποι δεδομένων κάθε χαρακτηρηστικού ("NUMERIC" ή λίστα διακριτών τιμών)
+  #data_min: Πίνακες με την ελάχιστη τιμή του κάθε NUMERIC χαρακτηριστικού 
+  #data_max: Πίνακες με την μέγιστη τιμή του κάθε NUMERIC χαρακτηριστικού 
+  #Nc: Πλήθος διακριτών τιμών κλάσης
+  #p_mutate: πιθανότητα μετάλλαξης 
+  
+  NTrees = length(trees)    #αριθμός δέντρων.     
+  mut = runif(NTrees, 0, 1) #τυχαία επιλογή NTrees αριθμών από το 0 έως το 1.      
+  
+  for (i in 1: NTrees){
+    # αν η τιμή mut[i] είναι μικρότερη από την πιθανότητα μετάλλαξη γίνεται μετάλλαξη στο δέντρο i. 
+    if (mut[i] < p_mutate){
+      tree = trees[[i]] 
+      L = length(tree[,"id"])  #αριθμός δέντρων.
+      n = sample(1:L, 1)       #επιλογή ενός τυχαίου κόμβου.
+      #αν δεν είναι φύλλο ο επιλεγμένος κόμβος.
+      if (tree[n,"class"] == 0) {
+        #τότε ο κόμβος παίρνει var την τιμή του κόμβου n.
+        var = as.integer(tree[n,"var"])
+
+        #και τιμή διαχωρισμού μια τυχαία μεταξύ του πάνω και του κάτω ορίου.
+        #################################################
+        #tree[n,"split"] <- runif(1, data_min[var], data_max[var])
+        if (DataTypes[[as.integer(var[1])]][1] == "NUMERIC") {
+          tree[n,"split"] = runif(1, as.double(data_min[var]), as.double(data_max[var]))
+        } 
+        else {
+          tree[n,"split"] = trim.leading(sample(DataTypes[[var]],1))
+        }
+        ######################################################********************************************************
+      } else {               #αν είναι φύλλο.
+        #παίρνει μια από τις κλάσεις τυχαία.
+        tree[n,"class"] <- sample(1:Nc, 1)
+      }
+      trees[[i]] = tree #εισαγωγή του μεταλλαγμένου δέντρου στη λίστα με τα δέντρα.
+    }
+  }
+  return(trees) 
+}
+
+
+gatree_train <- function(Data, DataTypes, Class, NTrees = 800, generations = 200, gen_gap = 0.25, p_mutate = 0.005, p_crossover = 0.93, x=5000){
+  #Παράμετροι:
+  #Data: Ο πίνακας με τα δεδομένα
+  #DataTypes: Οι τύποι δεδομένων κάθε χαρακτηρηστικού ("NUMERIC" ή λίστα διακριτών τιμών)
+  #Class: Οι πραγματικές κλάσεις των δεδομένων
+  #NTrees: το πλήθος των δέντρων κάθε γενιάς
+  #generations: το πλήθος των γενεών εξέλιξης
+  #gen_gap: Ποσοστό καλυτέρων για επιβίωση στην επόμενη γενιά
+  #p_mutate: Πιθανότητα μετάλλαξης
+  #p_crossover: Πιθανότητα διασταύρωσης
+  #x: Συντελεστής διόρθωσης
+  
+  size <- dim(Data)
+  V <- size[2]      #το δεύτερο στοιχείο του size είναι αριθμός μεταβλητών.
+  N <- size[1]      #το πρώτο στοιχείο του size είναι ο αριθμός δειγμάτων.
+    #data_min <- apply(Data, 2, min, na.rm = TRUE) #επιστρέφει την ελάχιστη τιμή που παίρνει κάθε μεταβλητή (ελάχιστο από κάθε στήλη).
+    #data_max <- apply(Data, 2, max, na.rm = TRUE) #επιστρέφει τη μέγιστη τιμή που παίρνει κάθε μεταβλητή (μέγιστο από κάθε στήλη).
+    data_min = matrix(ncol = V ) 
+    colnames(data_min) = colnames(Data)
+    data_max = matrix(ncol = V) 
+    colnames(data_max) = colnames(Data)
+    for (i in 1:V) {
+      
+      if (DataTypes[[i]][1] == "NUMERIC") {
+        Data[,i] = as.double(Data[,i])
+        data_min[i] <- min(Data[,i], na.rm = TRUE ) #επιστρέφει την ελάχιστη τιμή που παίρνει κάθε μεταβλητή (ελάχιστο από κάθε στήλη).
+        data_max[i] <- max(Data[,i], na.rm = TRUE ) #επιστρέφει τη μέγιστη τιμή που παίρνει κάθε μεταβλητή (μέγιστο από κάθε στήλη).
+      } 
+    }
+    
+    
+  #calculate Nc: number of classes
+  print(data_min)
+  print(data_max)
+  # if (class(Class) == "factor"){
+  #   Nc = length(levels(Class)) 
+  # } else {
+  #   Nc = length(unique(Class))
+  # }
+  #δημιουργία δέντρων με χρήση της create_tree.
+  trees = list()
+  browser()
+  for(i in 1: NTrees){
+   trees[[i]] = create_tree(V,DataTypes, data_min, data_max, Nc)
+  }
+
+
+  
+#
+# #======================================================
+  
+  #  Εξέλιξη δέντρων για generations γενιές 
+  for (g in 1:generations){
+    cat("\n\nGeneration: ", g, " type of trees: ",length(trees))
+    #αξιολόγηση, επιλογή, διασταύρωση, μετάλλαξη.
+    browser()
+    a = payoff_trees(trees, Data, DataTypes, Class, x)
+    N_keep = round(gen_gap * NTrees)        #κρατάμε τα καλύτερα x% και περνάνε στην επόμενη γενιά.  
+    cat("\n\nGeneration: ", g, "keeping : ",N_keep)
+    sort_results = sort(a, decreasing = TRUE, index.return = TRUE)
+    keep_index = sort_results$ix[1:N_keep]  #κρατάει τα καλύτερα.                  
+    keep_trees = trees[keep_index]
+    r = roulette(a, NTrees-N_keep)         #επιλογή.           
+    trees = trees[r]     
+    trees = crossover(trees, p_crossover)  #διασταύρωση.       
+    trees = mutate(trees, DataTypes, data_min, data_max, Nc, p_mutate) #μετάλλαξη.         
+    trees = c(trees,keep_trees)        #η λίστα με τα δέντρα της γενιάς. 
+
+    treedepth= sapply(trees, tree_depth)
+    cat("\nTree depth " )
+    cat("min : ", min(treedepth[1,]))
+    cat("\n           max : ", max(treedepth[1,]))
+    cat("\n           avg : ", mean(treedepth[1,]))
+    cat("\nDecision Nodes ")
+    cat("min : ", min(treedepth[2,]))
+    cat("\n               max : ", max(treedepth[2,]))
+    cat("\n               avg : ", mean(treedepth[2,]))
+    cat("\nEnd Nodes " )
+    cat("min : ", min(treedepth[3,]))
+    cat("\n          max : ", max(treedepth[3,]))
+    cat("\n          avg : ", mean(treedepth[3,]))
+
+    plot(as.factor(treedepth[1,]) )
+    
+  }
+  cat("\n")
+  
+  return(trees)
+}
+
+tree_depth <- function(tree, id="1", depth=1, decisionNodes=0, endNodes=0){
+  #υπολογίζει αναδρομικά το ύψος και το πλήθος κόμβων και φύλων ενός δέντρου
+  #Παράμετροι:
+  #tree: Το δεντρο του οποίου υπολογίζουμε την απόδοση
+  #id, depth, decisionNodes, endNodes: Χρησιμοποιούνται μόνο στην αναδρομική 
+  #                                    κλήση από την ίδια την συνάρτηση
+  
+  ldepth=depth
+  rdepth=depth
+
+  if (as.character(tree["id"=id,"lChild"]) != "0") {decisionNodes = decisionNodes + 1 }
+    else {endNodes = endNodes + 1}
+  if(as.character(tree["id"=id,"lChild"]) != "0"){
+    ldepth = ldepth + 1
+    temp = tree_depth(tree,as.character(tree["id"=id,"lChild"]), ldepth, decisionNodes, endNodes)
+    ldepth=temp[1]
+    decisionNodes = temp[2]
+    endNodes  = temp[3]
+  }
+  if(as.character(tree["id"=id,"rChild"]) != "0"){
+    rdepth = rdepth + 1
+    temp = tree_depth(tree,as.character(tree["id"=id,"rChild"]), rdepth, decisionNodes, endNodes)
+    rdepth=temp[1]
+    decisionNodes = temp[2]
+    endNodes = temp[3]
+  }  
+  
+  return(c(max(rdepth,ldepth,na.rm = TRUE)
+           , decisionNodes , endNodes))
+}
+
+gatree_predict <-function(trees, Data, DataTypes, Nc){
+  NTrees  = length(trees) 
+  N <- dim(Data)[1]
+  pred = array(0,dim=c(NTrees,N)) 
+  
+  stime <- system.time({
+  # for(i in 1: NTrees){
+  #  pred[i,] = predict_tree(trees[[i]], Data, DataTypes)
+  # 
+  # }
+  # Parallel MOD ======================  
+    closeAllConnections()
+    n.cores <- detectCores()
+    cl <- makeCluster(n.cores[1])
+    registerDoParallel(cl)
+      clusterExport(cl, list("Data","DataTypes",  "NTrees", "predict_tree","trees","pred")
+                    ,envir=environment())
+      pred<- foreach(i = 1: NTrees, .combine=rbind ) %dopar%
+        {
+           predict_tree(trees[[i]], Data, DataTypes)
+        }
+    stopCluster(cl)
+  #====================================      
+  })[3]
+  cat("predict \n")  
+  print(stime)    
+  
+  #πρόβλεψη όλων των δένδρων μαζί.
+  final_pred = vector(mode="numeric", length=N)
+  x = vector(mode="numeric", length=Nc)
+  for(i in 1:N){
+    for (j in 1:Nc){
+      #count class για τα Τ δέντρα.
+      x[j] = sum(pred[,i]==j) 
+    }
+    final_pred[i] = which.max(x)#βρίσκει ποια κλάση έχει την πλειοψηφία.
+    #cat("final_pred",i,"class:",final_pred[i],"\n")
+  }
+  return(final_pred)
+}
+
+
+print_tree <- function(tree, var_names, class_names, DataTypes){
+  #τυπώνει τον πρώτο κόμβο – ρίζα του δέντρου.
+  prefix = ""
+  n="1"                           #ρίζα του δέντρου. 
+  if ((v=tree[n,"var"])!="0"){             #αν είναι εσωτερικός κόμβος.
+    if (DataTypes[[as.integer(v)]][1] == "NUMERIC" ) oper=" < " else oper=" = "
+    cat("(1) ",var_names[as.integer(tree[n,"var"])],oper ,tree[n,"split"],"\n",sep="")  #τυπώνει 
+    nodes = c(2,3)                #αφoύ είναι ρίζα εσωτερικός κόμβος καταχωρούνται τα παιδιά του στη λίστα.                                                     
+  }else{                          #αν είναι ρίζα φύλλο. 
+    cat("(1) Class: ", tree[n,"class"],"\n",sep="")                         #τυπώνει 
+    nodes=c()  #στην περίπτωση που είναι ρίζα φύλλο, 
+	           #εκτυπώνεται η παραπάνω γραμμή και τελειώνει η διαδικασία, 
+			   #καθώς το while στην παρακάτω γραμμή ειναι false γιατί δεν υπάρχει άλλος κόμβος 
+  }
+  while(length(nodes)>0){          #όσο το nodes δεν είναι κενό. 
+    n = nodes[1]                  #το n παίρνει το πρώτο στοιχείο του nodes δηλαδή τον επόμενο κόμβο του δέντρου.
+    level = floor(log2(as.integer(n)))        #το επίπεδο που βρίσκεται ο εκάστοτε κόμβος.  
+    n=as.character(n)  
+    if ((v=tree[n,"var"])!="0"){           #αν έχει var ο κόμβος που ελέγχεται.  
+      if (DataTypes[[as.integer(v)]][1] == "NUMERIC" ) oper=" < " else oper=" = "
+      prefix = prefix[1:level]
+      cat(prefix, "|_ (",n,") ",var_names[as.integer(tree[n,"var"])],oper ,tree[n,"split"],"\n",sep="") 
+      if (as.integer(nodes[1]) %% 2 == 0){    #οι κόμβοι με άρτια αρίθμιση είναι αριστερά παιδιά.. (mod = %%)
+        prefix = c(prefix, "|  ") #σε περίπτωση που είναι αριστερό παιδί. 
+      }else{
+        prefix = c(prefix, "   ") #σε περίπτωση που είναι δεξί παιδί. 
+      }
+      nodes = nodes[-1]           #διαγραφή του κόμβου που τυπώθηκε από τη λίστα nodes.
+      nodes = c(tree[n,"lChild"], tree[n,"rChild"], nodes) #εισαγωγή παιδιών κόμβου στη λίστα. 
+    }else if(tree[n,"class"]!="0"){    #αλλιώς αν είναι κόμβος φύλλο.
+      prefix = prefix[1:level]    
+      cat(prefix, "|_ (",n,") ","Class: ",class_names[as.integer(tree[n,"class"])] ,"\n",sep="") #τυπώνει 
+      nodes = nodes[-1]           #διαγραφή του κόμβου που τυπώθηκε από τη λίστα nodes.
+    }
+  }
+  
+}
+
+plot_tree <- function(tree, var_names, class_names,DataTypes){
+  
+  #αρχικοποίηση. 
+  id=c()
+  label = c()
+  type = "t"
+  from = c()
+  to = c()
+  shape = c()
+  rel = c()
+  fontcolor=c() #blue, red.                      
+  fixedsize =c() #true.
+  width = c()#1.6]
+  fillcolor = c()
+  
+  nodes = c(1)      #από τον πρώτο κόμβο.
+  while(length(nodes)>0){ #έλεγχος αν ειναι άδεια η λίστα με τους κόμβους.
+    n = nodes[1]      #αρχίζουμε με τον πρώτο κόμβο.
+    
+    n=as.character(n)
+    if ((v=tree[n,"var"])!="0"){ #αν έχει var τότε είναι κόμβος εσωτερικός.
+      if (DataTypes[[as.integer(v)]][1] == "NUMERIC" ) 
+         txt = paste0(var_names[as.integer(tree[n,"var"])]," < ",sprintf("%.2f",as.double(tree[n,"split"])))
+      else
+         txt = paste0(var_names[as.integer(tree[n,"var"])]," = ",tree[n,"split"])
+      label = c(label,txt)
+      id = c(id,tree[n,"id"])
+      shape = c(shape,"circle")
+      width = c(width, 0.8)
+      fixedsize = c(fixedsize,FALSE)  ##############################
+      fontcolor=c(fontcolor, "blue")
+      fillcolor = c(fillcolor,"lightblue")
+      from = c(from, tree[n,"id"])
+      to = c(to,tree[n,"lChild"])
+      rel = c(rel,"yes")
+      from = c(from, tree[n,"id"])
+      to = c(to,tree[n,"rChild"])
+      rel = c(rel,"no")
+      
+      nodes = nodes[-1]       #αφαιρούμε τον κόμβο που τυπώθηκε.
+      nodes = c(nodes, tree[n,"lChild"], tree[n,"rChild"]) #εισάγονται τα παιδιά του.
+      
+    }else if(tree[n,"class"]!="0"){ #είναι φύλλο.
+      txt = class_names[as.integer(tree[n,"class"])]
+      label = c(label,txt)
+      id = c(id,tree[n,"id"])
+      shape = c(shape,"box")
+      width = c(width,0.6)
+      #fixedsize = c(fixedsize,FALSE)
+      fontcolor=c(fontcolor, "red")
+      fillcolor = c(fillcolor,"limegreen")
+      
+      nodes = nodes[-1]      #αφαιρούμε τον κόμβο που τυπώθηκε.
+    }
+  }
+
+  color = rep("steelblue", times = length(fontcolor))
+  fontcolor = rep("black", times = length(fontcolor))
+  id= as.integer(id)
+  nodes_df = data.frame(id=id,label=label,
+                        shape=shape,
+                        type=type,
+                        width=0.8,
+                        fontsize=6, 
+                        fillcolor=fillcolor,
+                        color=color,
+                        fontcolor=fontcolor,
+                        stringsAsFactors = FALSE)# dataframe.
+  if (length(from)){
+    edges_df = create_edge_df(from = from,
+                              to = to,
+                              rel = rel,
+                              label = rel) #αν θέλουμε να τυπώνεται yes/no στις ακμές.
+    gatree_graph <- create_graph(nodes_df = nodes_df,
+                                 edges_df = edges_df,
+                                 directed = TRUE)
+    render_graph(gatree_graph,layout = "tree")
+    
+  }else{
+    #only one leaf.
+    edges_df = data.frame()
+    gatree_graph <- create_graph(nodes_df = nodes_df,
+                                 edges_df = edges_df)
+    
+    render_graph(gatree_graph)
+  }
+  #visNetwork(nodes_df, edges_df, width = "100%") %>% visOptions(highlightNearest = list(enabled =TRUE,algorithm="hierarchical"))
+}
+
+
+set.seed(123456789)
+
+RUN_EXAM = TRUE
+
+if (RUN_EXAM){
+  # ## load df_max_exam
+  # df=read.csv("h:/df_max_exam.csv")
+  # 
+  # #convert ThΕ• to Int
+  # df$ThE = as.integer(factor(df$ThE))
+  # #now we can filter by θεματική ενότητα: 1 (ΠΛΗ10) or 2 (ΠΛΗ11) or 3 (ΠΛΗ12).
+  # df = df[df$ThE == 1 ,]         # π.χ.df$Year == 2014 for filter by year.
+  # #use only the ones who came to exams
+  # #filter = df$Ex_Tel >= 0
+  # #df = df[filter,]
+  # Data = df
+  #============================================ Apostolis mod
+  df=readFile()#("h:/iris.arff") #("h:/df_max_exam.arff")
+  Data = df$table_data
+
+  myClassCol = as.character(df$class)
+  myClassType = as.character(df$caption[(df$caption[,1] %in% myClassCol),2])
+  var_names= as.character(df$caption[!(df$caption[,1] %in% myClassCol),1])
+
+  
+  #============================================
+  if( myClassType== "NUMERIC") {
+    cat("\n MIN value of ", myClassCol, " is " , min(Data[[myClassCol]]))
+    cat("\n MAX value of ", myClassCol, " is " , max(Data[[myClassCol]]))
+    while(T) {
+      classSeparator <- readline("please enter class separation value :")
+      classSeparator <- as.numeric(classSeparator)
+      if (!is.na(classSeparator) && classSeparator <=max(Data[[myClassCol]]) && classSeparator >= min(Data[[myClassCol]]) )  break
+    }
+    Class = (Data[[as.character(myClassCol)]] >= classSeparator) 
+    Class = as.numeric(Class) + 1 #must be 1, 2, 3, ...
+    class_names = c("fail", "pass")   #########################*******************************
+  }
+  
+  if(myClassType == "STRING"){
+    listOfclass = levels(as.factor(df$table_data[,myClassCol]))
+    Class = match(trimws(Data[[as.character(myClassCol)]], whitespace = "[ \t\r\n]"), listOfclass)  
+    class_names = listOfclass  
+  }
+  
+  if (substr(myClassType,1,2) == "c(") { # η κλάση έχει διακριτές τιμές
+    listOfclass = df$caption[(df$caption[,1] %in% myClassCol),2]
+    listOfclass$colType = trimws(listOfclass$colType, whitespace = "[ \t\r\n]")
+    Class = match(Data[[as.character(myClassCol)]], listOfclass$colType)  
+    class_names = listOfclass$colType   
+  }
+
+  DataTypes = df$caption[(df$caption[,1] %in% var_names),2]
+  # as data frame για την περίπτωση μίας στήλης δεδομένων
+  Data =as.data.frame( Data[,var_names])# Data[,c("GE1","GE2","GE3","GE4")] #
+  #var_names = variable.names(Data)
+
+ 
+  N = length(Class) #length of data
+  Nc = length(unique(Class))
+  NTrees = 100
+  generations = 10
+  x = 5000
+  gen_gap = 0.25
+  p_mutate =  0.001
+  p_crossover = 0.93
+totaltime <- system.time({  
+  trees = gatree_train(Data,DataTypes, Class, NTrees, generations, gen_gap, p_mutate, p_crossover , x)   #prediction για ολα τα δέντρα μαζί. 
+  final_pred = gatree_predict(trees, Data, DataTypes, Nc)
+  
+  final_acc = sum(final_pred == as.numeric(Class))/N
+ 
+  cat("accuracy:",final_acc, "  ")
+  
+  for (i in 1:Nc)  cat("\nH κλάση ",i,":",class_names[i]," ",sum(Class==i)/length(Class),"  ")
+  cat("\n")
+  
+  cm = confusionMatrix(as.factor(final_pred), as.factor(Class), pos="2")
+  print(cm)
+ 
+  cat("\n")
+  
+  if(TRUE){
+    
+      a = payoff_trees(trees, Data, DataTypes, Class, x)
+      ##plot first tree
+      i =  which.max(a)
+      cat("Το δέντρο με την καλύτερη απολαβή είναι το ",i,"\n")
+      print_tree(trees[[i]], variable.names(Data), class_names, DataTypes)
+      print(plot_tree(trees[[i]], var_names , class_names, DataTypes))
+      p=predict_tree(trees[[i]], Data, DataTypes)
+      print(sum(p==Class)/length(Class))
+      
+      sort_results = sort(a, decreasing=TRUE, index.return = TRUE)
+      #print(sort_results)
+      ##show top i trees
+      for (i in 1:10){
+        j = sort_results$ix[i]
+        cat("δέντρο:",j,"\n")
+        print_tree(trees[[j]], var_names, class_names,DataTypes)
+        #print(plot_tree(trees[[j]], var_names, class_names) )
+        p=predict_tree(trees[[j]], Data, DataTypes)
+        x=sum(p==Class)/length(Class)
+        cat("predict:",x, "\n","\n")
+      }
+    
+  }
+})[3]
+cat("Total System Time \n")  
+print(totaltime) 
+}
+
+    

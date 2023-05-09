@@ -1,0 +1,32 @@
+﻿@model IEnumerable<GAtreeWebStore.Models.Data>
+@{
+    ViewData["Title"] = "viewjson";
+}
+
+<h1>viewjson</h1>
+<script src="~/lib/jquery/dist/jquery.js"></script>
+
+<h4>
+    <details>
+        <summary>Show the json in raw format</summary>
+        <p>@ViewBag.json</p>
+    </details>
+</h4>
+<h5>
+    <details>
+        <summary>Show the json in a table </summary>
+        <table align="center"
+               id="table" border="1">
+        </table>
+    </details>
+</h5>
+
+
+    <script src="/js/showJson.js"></script>
+    <script type="text/javascript">
+            var list1 = @Html.Raw(ViewBag.json)
+
+            console.log(list1);
+        createtableFromJson(list1, '#table');
+    </script>
+

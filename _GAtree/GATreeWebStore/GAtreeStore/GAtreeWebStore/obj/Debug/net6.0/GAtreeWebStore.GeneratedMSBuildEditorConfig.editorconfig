@@ -1,0 +1,113 @@
+is_global = true
+build_property.TargetFramework = net6.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = GAtreeWebStore
+build_property.RootNamespace = GAtreeWebStore
+build_property.ProjectDir = E:\GitHub_test1\Test1\_GAtree\GATreeWebStore\GAtreeStore\GAtreeWebStore\
+build_property.RazorLangVersion = 6.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = true
+build_property.MSBuildProjectDirectory = E:\GitHub_test1\Test1\_GAtree\GATreeWebStore\GAtreeStore\GAtreeWebStore
+build_property._RazorSourceGeneratorDebug = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/DataAttributes/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGF0YUF0dHJpYnV0ZXNcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Data/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGF0YVxDcmVhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Data/CreateFromFile.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGF0YVxDcmVhdGVGcm9tRmlsZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Data/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGF0YVxJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Data/show.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGF0YVxzaG93LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Data/viewheader.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGF0YVx2aWV3aGVhZGVyLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Data/viewjson.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGF0YVx2aWV3anNvbi5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Home/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Home/Privacy.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxQcml2YWN5LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/RecordTree/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUmVjb3JkVHJlZVxJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Shared/Error.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Shared/_Layout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Shared/_ValidationScriptsPartial.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/TestDataRun/create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGVzdERhdGFSdW5cY3JlYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/TestDataRun/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGVzdERhdGFSdW5cSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Testdata/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGVzdGRhdGFcQ3JlYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Testdata/Createold.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGVzdGRhdGFcQ3JlYXRlb2xkLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Testdata/Details.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGVzdGRhdGFcRGV0YWlscy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Testdata/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGVzdGRhdGFcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/Testdata/Viewtests.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGVzdGRhdGFcVmlld3Rlc3RzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/TestRunning/Details.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGVzdFJ1bm5pbmdcRGV0YWlscy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/ThinClient/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGhpbkNsaWVudFxJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[E:/GitHub_test1/Test1/_GAtree/GATreeWebStore/GAtreeStore/GAtreeWebStore/Views/_ViewStart.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 

@@ -1,0 +1,32 @@
+﻿
+@model GAtreeWebStore.Models.Data
+@{
+    ViewData["Title"] = "Create a new dataset from URL";
+}
+<!-- TODO javascript to check if the URL is valid and exists -->
+<h1>Create a new dataset from URL</h1>
+
+<form method="post" asp-action="Create">
+    <div asp-validation-summary="All"></div>
+    <table>
+        <tr>
+
+            <td>
+                URL : <input asp-for="Data_URL" class="form-control" value="https://storm.cis.fordham.edu/~gweiss/data-mining/weka-data/iris.arff"  required/>
+                      <span asp-validation-for="Data_URL" class="text-danger"></span>
+            </td>
+
+            <td>friendlyname:<input asp-for="Data_friendlyname" class="form-control" required /> 
+                <span asp-validation-for="Data_friendlyname" class="text-danger"></span>
+            </td>
+            <td>
+                Notes: <input asp-for="Data_notes" class="form-control" /> 
+            </td>
+        </tr>
+        <tr> 
+            <td>
+                <input type="submit" class="btn btn-info w-75" value="create" />
+            </td>
+        </tr>
+    </table>
+    </form>

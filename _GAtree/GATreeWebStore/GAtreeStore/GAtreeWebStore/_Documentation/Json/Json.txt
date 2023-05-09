@@ -1,0 +1,41 @@
+﻿tree1 : {
+	"tree": "tree11",
+	"evaluation": "11"
+}
+-------
+tree2 : {
+	"tree": "tree22",
+	"evaluation": "22"
+}
+--------
+JsonRoot : {
+	"trees": [{
+		"tree": "tree11",
+		"evaluation": "11"
+	}, {
+		"tree": "tree22",
+		"evaluation": "22"
+	}]
+}
+-------
+JsonRoot2: {
+	"tree1": {
+		"tree": "tree11",
+		"evaluation": "11"
+	},
+	"tree2": {
+		"tree": "tree22",
+		"evaluation": "22"
+	}
+}
+
+
+--------- step 1 get job
+http://localhost:29999/api/cycle
+{
+    "datarunID":"2",
+    "action":"CLIENTGETJOB",
+    "clientGuid":"00000000-0000-0000-0000-000000000000",
+    "result" : "resdefdyrjfdjffult"
+}
+---- Step1 - Send trees

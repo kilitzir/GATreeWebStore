@@ -1,0 +1,81 @@
+﻿<!-- 
+    
+                    UNUSED
+                    UNUSED !!!
+    
+    
+    -->
+
+@model GAtreeWebStore.Models.TestData
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+<script src="~/lib/jquery/dist/jquery.js"></script>
+<link href="~/lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet" />
+<link href="~/lib/bootstrap/dist/css/bootstrap-grid.css" rel="stylesheet" />
+<script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
+<script src="~/lib/vue/vue.js"></script>
+
+
+<h4>TestData</h4>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create">
+
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="TestData_friendlyName" class="control-label"></label>
+                <input asp-for="TestData_friendlyName" class="form-control" required />
+                <span asp-validation-for="TestData_friendlyName" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="TestData_notes" class="control-label"></label>
+                <input asp-for="TestData_notes" class="form-control" />
+                <span asp-validation-for="TestData_notes" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="TestData_data_id" class="control-label"></label>
+                <select asp-for="TestData_data_id" class="form-control" asp-items="ViewBag.TypeDropDown" required></select>
+            </div>
+            <!---- multiple records-->
+            <div id="aaa">
+                <span class="btn btn-success mt-5 mb-5" 
+                        v-on:click="AddNewParameter"> 
+                    Add new parameter
+                </span>
+                <div class="card mb-3"
+                     v-for="(parameter, index) in parameters">
+                    <div class="card-body">
+                        <span class="float-right" style="cursor:pointer" v-on:click="DeleteParameter(index)" >
+                            X
+                        </span>
+                        <h4 class="card-title"> Add Parameter (index: {{index+1}}) </h4>
+
+                        <div>
+                            <input type="text" class="form-control mb2" placeholder="name" v-model="parameter.name" required>
+                            <input type="text" class="form-control mb2" placeholder="job" v-model="parameter.value" required>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+            <!-- end-->
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+
+        </form>
+
+    </div>
+</div>
+<script src="~/js/Testdata/create.js"></script>
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+

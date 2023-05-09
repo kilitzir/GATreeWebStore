@@ -1,0 +1,74 @@
+library(httr)
+library(jsonlite)
+library(stringr)
+library(crayon)
+source("Readparams.R")
+source("Utils.R")
+source("dataset.R")
+source("Circle.R")
+
+#---------------------------------------MAIN CIRCLE
+GA.mainCircle <- function()
+{
+  cat(crayon::blue("GA.mainCircle begin----"))
+  GA.readAllParams() 
+  df = GA.createDataSet()# needed?
+  
+  globalvariables1$ClassName = as.character(df$class)
+  # the classtype of the classification -  it could be a list
+  globalvariables1$ClassType = as.character(df$caption[(df$caption[, 1] %in% globalvariables1$ClassName), 2])
+  globalvariables1$varNames =  as.character(df$caption[!(df$caption[, 1] %in% globalvariables1$ClassName), 1])  #The other attributes apart from the classification
+  #The following variables are used in Iakovakis  
+  myClassCol = as.character(df$class) # The classification attribute's name
+  myClassType = as.character(df$caption[(df$caption[, 1] %in% myClassCol), 2])# the classtype of the classification -  it could be a list
+  var_names = as.character(df$caption[!(df$caption[, 1] %in% myClassCol), 1])  #The other attributes apart from the classification
+  GA.circle()
+  cat(crayon::blue("GA.mainCircle end ----"))
+}
+#------------------------  SMALL CIRCLE
+GA.circle<- function()
+{
+  cat(crayon::blue("GA.main begin ----"))
+  globalvariables1$current_stage <- "CROSSOVER" # for debugging purposes
+  while (TRUE)
+  {
+    val <- "1"
+    ppp <- "1"
+    ppp <- GA.getAJob()
+    globalvariables1$ppp <- ppp
+    if (ppp$action == "ERROR" || ppp$result == "ERROR")
+    {
+      cat (" error:", ppp$message)
+      break;
+    }
+    if (ppp$action == actions$BUSY)
+    {
+      readline("action is busy -  write a key to continue:")
+    }
+    if (ppp$action != globalvariables1$current_stage) # for debugging purposes
+    {
+      cat("current stage is changing ( ",globalvariables1$current_stage," )--> ",ppp$action)
+      readline("write a key to continue:")
+      globalvariables1$current_stage <- ppp$action
+    }
+    globalvariables1$tree1 = globalvariables1$tree2 = NULL
+    globalvariables1$evaluation1 = globalvariables1$evaluation1 = NULL
+    globalvariables1$treeRecordId = ppp$treeRecordId
+    
+    # TODO the string should be taken from global variable actions
+    val <- switch (
+      ppp$action,
+      "CROSSOVER"   = GA.crossOver(ppp),
+      "CREATETREES" = GA.createTrees(ppp),
+      "MUTATION"    = GA.mutation(ppp),
+      "BUSY"        =  GA.sleep(ppp),
+      "NONE"        =  GA.sleep(ppp),
+      "ERROR"       = GA.error(ppp)
+    )
+    if (nchar(val)> 1) 
+    {
+      ppp1 = GA.postAJob(val)
+    }
+  }
+  cat(crayon::blue("GA.Circle end ----"))
+}

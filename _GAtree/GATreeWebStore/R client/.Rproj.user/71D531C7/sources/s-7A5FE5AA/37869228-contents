@@ -1,0 +1,286 @@
+library(httr)
+library(jsonlite)
+library(stringr)
+
+# readData("http://localhost:28888/api/cycle", 15)
+
+
+#-------------------------------- GET A JOB -------------------------------
+GA.getAJob <- function()
+{
+  
+  print("Get a job: begin -------------")
+  query = list(datarunID =globalvariables1$datarun, 
+               action = actions$CLIENTGETJOB
+  )
+  ListJSON = toJSON(query,pretty = TRUE,auto_unbox = TRUE)
+  cat(paste("\t","query send:","\n", ListJSON,"\n"))
+  r <- POST(url = globalvariables1$url, 
+            body = ListJSON,
+            content_type_json()
+  )
+  s1 <- content(r, "text")
+  cat(paste("\t","query receive:","\n", r,"\n"))
+  mydf1 <- fromJSON(s1)
+  globalvariables1$TreerecordId <- mydf1$treeRecordId
+  print("Get a job: end -------------")
+  return (list ( action = mydf1$action, result = mydf1$result, treeRecordId = mydf1$treeRecordId, message = mydf1$message))
+}
+#-------------------------   POST A JOB -------------------------------
+GA.postAJob<- function(response)
+  # posts a job
+  # response: the data to be send
+{
+  print("Post a job: begin -------------")
+  r <- POST(url = globalvariables1$url, 
+            body = response,
+            content_type_json(),
+            verbose(data_out = TRUE, data_in = TRUE, info = TRUE)
+  )
+  print("Post a job: end -------------")
+  return (r)
+}
+#-------------------------  SLEEP -------------------------------
+# sleeps for 5 seconds
+GA.sleep <- function(response)
+{
+  print("Sleep: begin -------------")
+  Sys.sleep(5)
+  print("Sleep: end -------------")
+}
+#-------------------------- ERROR
+GA.error<- function(response)
+{
+  readline("An error occurred. Press any key to continue:")
+}
+#-------------------------  CROSS OVER -------------------------------
+GA.crossOverOld<-function(response)
+{
+  print("CrossOver: begin -------------")
+  browser()
+  trees <- fromJSON(response$result)
+  parent1 <- trees$tree1$tree
+  parent2 <- trees$tree2$tree
+  dataframe_parent1 <- GA.convert_A_tree_to_table(parent1)
+  dataframe_parent2 <- GA.convert_A_tree_to_table(parent2)
+  
+  #trees <- GA.crossover(dataframe_parent1,dataframe_parent2)
+  #list1 <- globalvariables1$dataAttributesTable$type[-length(globalvariables1$dataAttributesTable$type)]
+  #list1 <- as.list(list1) # attributes's type without the class attribute
+  #vector1 = unname(globalvariables1$dataset$classLevel)
+  eval1 <- runif(1,0,1)[1]
+  eval2 <- runif(1,0,1)[1]
+  #eval1 <- GA.payoff(trees$tree1,
+  #                   globalvariables1$dataset[1:(grep("\\bclass\\b", colnames(globalvariables1$dataset))- 1)], # everything but the last column
+  #                   list1,
+  #                   unlist(vector1),
+  #                   globalvariables1$parameters$correctionfactor)
+  #eval2 <- GA.payoff(trees$tree2,
+  #                   globalvariables1$dataset[1:(grep("\\bclass\\b", colnames(globalvariables1$dataset))- 1)], # everything but the last column
+  #                   list1,
+  #                   unlist(vector1),
+  #                   globalvariables1$parameters$correctionfactor)
+  
+  browser()
+  #colnames(trees$tree1) <- NULL
+  #colnames(trees$tree2) <- NULL 
+  Ltrees = list()
+  trees$tree1 = as.matrix(trees$tree1)
+  list1 <- list(tree=paste(trees$tree1,collapse = ","),evaluation=toString(eval1))
+  Ltrees[[1]] =  list1
+  trees$tree2 = as.matrix(trees$tree2)
+  list2 <- list(tree=paste(trees$tree2,collapse = ","),evaluation=toString(eval2))
+  Ltrees[[2]] =  list1
+  
+  query = list(datarunID = globalvariables1$datarun, 
+               action = response$action,
+               result = toJSON(Ltrees,auto_unbox = TRUE),
+               clientGuid = globalvariables1$Guid, # TODO change it
+               TreeRecordId = response$treeRecordId)
+  print("CrossOver: end -------------")  
+  return(toJSON(query,pretty = TRUE,auto_unbox = TRUE))
+}
+GA.crossOver<-function(response)
+{
+  print("CrossOver: begin -------------")
+  browser()
+  trees <- fromJSON(response$result)
+  parent1 <- trees$tree1$tree
+  parent2 <- trees$tree2$tree
+  dataframe_parent1 <- GA.convert_A_tree_to_table(parent1)
+  dataframe_parent2 <- GA.convert_A_tree_to_table(parent2)
+  eval1 <- runif(1,0,1)[1]
+  eval2 <- runif(1,0,1)[1]
+  Ltrees = list()
+  trees$tree1 = as.matrix(parent1)
+  list1 <- list(tree=paste(trees$tree1,collapse = ","),evaluation=toString(eval1))
+  Ltrees[[1]] =  list1
+  trees$tree2 = as.matrix(parent2)
+  list2 <- list(tree=paste(trees$tree2,collapse = ","),evaluation=toString(eval2))
+  Ltrees[[2]] =  list1
+  
+  query = list(datarunID = globalvariables1$datarun, 
+               action = response$action,
+               result = toJSON(Ltrees,auto_unbox = TRUE),
+               clientGuid = globalvariables1$Guid, # TODO change it
+               TreeRecordId = response$treeRecordId)
+  print("CrossOver: end -------------")  
+  return(toJSON(query,pretty = TRUE,auto_unbox = TRUE))
+}
+#--------------------------- MUTATE -------------------------------
+GA.mutationOLD <-function(response)
+{
+  print("Mutation: begin -------------")
+  browser()
+  trees <- fromJSON(response$result)
+  tree1 <- GA.convert_A_tree_to_table(trees$tree)
+  min1 <- as.matrix(globalvariables1$dataAttributesTable[, c("name", "minValue")])
+  min1 <- t(min1)
+  rownames(min1)<-NULL
+  min1 <- min1[, -ncol(min1)]
+  colnames(min1)<- min1[1,]    
+  min1 <- min1[-1,]
+  min1<-t(min1)
+  max1 <- as.matrix(globalvariables1$dataAttributesTable[, c("name", "maxValue")])
+  max1 <- t(max1)
+  rownames(max1)<-NULL
+  max1 <- max1[, -ncol(max1)]
+  colnames(max1)<- max1[1,]    
+  max1 <- max1[-1,]
+  max1<-t(max1)
+  
+  vvar1 <- GA.create_one_tree(which(names(globalvariables1$dataset) == "class")-1, # we assume that the class is the last item
+                              globalvariables1$dataAttributesTable$type,
+                              min1,
+                              max1)
+  #vvar2 = runif(1,0,1)[1] 
+    vvar1 = GA.create_one_tree(dim(globalvariables1$dataset)[2], 
+                               globalvariables1$dataAttributesTable$type,
+                               globalvariables1$dataAttributesTable$minValue,
+                               globalvariables1$dataAttributesTable$maxValue)
+    vvar2 = runif(1,0,1)[1]
+    # = GA.payoff(trees[[i]], TODO: Fix it
+    #                            globalvariables1$dataset[1:class_pos],
+    #                            globalvariables1$dataAttributesTable$type,
+    #                            globalvariables1$dataAttributesTable$type,
+    #                            globalvariables1$parameters$correctionfactor)
+    
+    vvar3 <- list(tree = toString(vvar1),evaluation=toString(vvar2))
+    Ltrees = list()
+    Ltrees[[1]] = vvar3
+  
+  globalvariables1$trees = trees
+  
+  query = list(datarunID = globalvariables1$datarun, 
+               action = response$action,
+               result = toJSON(Ltrees,auto_unbox = TRUE),
+               clientGuid = globalvariables1$Guid,
+               TreeRecordId = response$treeRecordId)
+  print("Mutation: end -------------")
+  return(toJSON(query,pretty = TRUE,auto_unbox = TRUE))
+}
+GA.mutation <-function(response)
+{
+  print("Mutation: begin -------------")
+  browser()
+  trees <- fromJSON(response$result)
+  tree1 <- GA.convert_A_tree_to_table(trees$tree)
+  min1 <- as.matrix(globalvariables1$dataAttributesTable[, c("name", "minValue")])
+  min1 <- t(min1)
+  rownames(min1)<-NULL
+  min1 <- min1[, -ncol(min1)]
+  colnames(min1)<- min1[1,]    
+  min1 <- min1[-1,]
+  min1<-t(min1)
+  max1 <- as.matrix(globalvariables1$dataAttributesTable[, c("name", "maxValue")])
+  max1 <- t(max1)
+  rownames(max1)<-NULL
+  max1 <- max1[, -ncol(max1)]
+  colnames(max1)<- max1[1,]    
+  max1 <- max1[-1,]
+  max1<-t(max1)
+  
+  vvar1 <- GA.create_one_tree(which(names(globalvariables1$dataset) == "class")-1, # we assume that the class is the last item
+                              globalvariables1$dataAttributesTable$type,
+                              min1,
+                              max1)
+  #vvar2 = runif(1,0,1)[1] 
+  vvar1 = GA.create_one_tree(dim(globalvariables1$dataset)[2], 
+                             globalvariables1$dataAttributesTable$type,
+                             globalvariables1$dataAttributesTable$minValue,
+                             globalvariables1$dataAttributesTable$maxValue)
+  vvar2 = runif(1,0,1)[1]
+  # = GA.payoff(trees[[i]], TODO: Fix it
+  #                            globalvariables1$dataset[1:class_pos],
+  #                            globalvariables1$dataAttributesTable$type,
+  #                            globalvariables1$dataAttributesTable$type,
+  #                            globalvariables1$parameters$correctionfactor)
+  
+  vvar3 <- list(tree = toString(vvar1),evaluation=toString(vvar2))
+  Ltrees = list()
+  Ltrees[[1]] = vvar3
+  
+  globalvariables1$trees = trees
+  
+  query = list(datarunID = globalvariables1$datarun, 
+               action = response$action,
+               result = toJSON(Ltrees,auto_unbox = TRUE),
+               clientGuid = globalvariables1$Guid,
+               TreeRecordId = response$treeRecordId)
+  print("Mutation: end -------------")
+  return(toJSON(query,pretty = TRUE,auto_unbox = TRUE))
+}
+#------------------------  CREATE TREES
+#Creates n trees based on the server's reply
+GA.createTrees <- function(response)
+{
+  browser()
+  trees = list()
+  for (i in 1:as.numeric(response$message)) 
+  {
+    # Adjust global variables to Ιακωβάκη functions.
+    min1 <- as.matrix(globalvariables1$dataAttributesTable[, c("name", "minValue")])
+    min1 <- t(min1)
+    rownames(min1)<-NULL
+    min1 <- min1[, -ncol(min1)]
+    colnames(min1)<- min1[1,]    
+    min1 <- min1[-1,]
+    min1<-t(min1)
+    max1 <- as.matrix(globalvariables1$dataAttributesTable[, c("name", "maxValue")])
+    max1 <- t(max1)
+    rownames(max1)<-NULL
+    max1 <- max1[, -ncol(max1)]
+    colnames(max1)<- max1[1,]    
+    max1 <- max1[-1,]
+    max1<-t(max1)
+    datatypes <- as.list(globalvariables1$dataAttributesTable$type[-length(globalvariables1$dataAttributesTable$type)])
+    browser()
+    vvar1 <- GA.create_one_tree(which(names(globalvariables1$dataset) == "class")-1, # we assume that the class is the last item
+                                datatypes,
+                                min1,
+                                max1)
+    #vvar2 = runif(1,0,1)[1]
+    # we make the variables to match for the payoff function from Iakovakis)
+    list1 <- globalvariables1$dataAttributesTable$type[-length(globalvariables1$dataAttributesTable$type)]
+    list1 <- as.list(list1) # attributes's type without the class attribute
+    vector1 = unname(globalvariables1$dataset$classLevel)
+    vvar2 = GA.payoff(vvar1,
+                      globalvariables1$dataset[1:(grep("\\bclass\\b", colnames(globalvariables1$dataset))- 1)], # everything but the last column
+                      list1,
+                      unlist(vector1),
+                      globalvariables1$parameters$correctionfactor)
+    
+    vvar3 <- list(tree=toString(vvar1),evaluation=toString(vvar2))
+    trees[[i]] = vvar3
+  } #for
+  #browser()
+  globalvariables1$trees = trees
+  
+  query = list(datarunID = globalvariables1$datarun, 
+               action = response$action,
+               result = toJSON(trees,auto_unbox = TRUE),
+               clientGuid = globalvariables1$Guid,
+               TreeRecordId = response$treeRecordId)
+  return(toJSON(query,pretty = TRUE,auto_unbox = TRUE))
+}
+# ----------
